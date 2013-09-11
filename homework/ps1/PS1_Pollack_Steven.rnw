@@ -1,0 +1,111 @@
+\documentclass[12pt,titlepage]{article}
+
+\usepackage{mcgill,fancyhdr,palatino}
+
+%%%%% knitr code to make sure things stay inside listings box:
+\usepackage{listings}
+\usepackage{inconsolata}
+
+\lhead{PHC240B}
+\chead{Problem Set \#1}
+\rhead{Steven Pollack -- 24112977}
+\cfoot{\thepage}
+
+\title{PHC240B \\ Problem Set \#1}
+\author{Steven Pollack \\ 24112977}
+\date{}
+
+\renewcommand{\Q}{\mathcal{Q}}
+\renewcommand{\H}{\mathcal{H}}
+\renewcommand{\N}{\mathcal{N}}
+\newcommand{\K}{\mathcal{K}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\I}{\mathcal{I}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\col}{col}
+\DeclareMathOperator{\proj}{proj}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\expit}{expit}
+\DeclareMathOperator{\argmin}{argmin}
+\DeclareMathOperator{\argmax}{argmax}
+
+\begin{document}
+\maketitle
+\pagestyle{empty}
+\newpage
+\pagestyle{fancy}
+
+<<globalParameters,echo=FALSE>>=
+set.seed(1234)
+opts_chunk$set(comment="#",tidy=F,warning=FALSE,message=FALSE,highlight=FALSE,echo=F)
+# library(ggplot2)
+# library(reshape2)
+# load('solutions.Rdata')
+@
+
+<<stayInside,echo=FALSE>>=
+  options(width=60)
+  listing <- function(x, options) {
+     paste("\\begin{lstlisting}[basicstyle=\\ttfamily,breaklines=true]\n", x,"\\end{lstlisting}\n", sep = "")
+  }
+  
+  knit_hooks$set(source=listing, output=listing)
+@
+
+\paragraph{\#1} %Using the notation from slide 8, of Chapter 2's notes, we'll assume that the individuals' ``time until cancer'', $T_i$, are iid with density $f(t;\theta)$, and survival function $S(t;\theta)$. We'll also assume the censoring mechanism, $C_i$, has density $q(c)$ and survival function $Q(c)$. 
+  Note that because the study only recruited ``disease-free'' individuals, immediately, we have left-truncation. 
+  \begin{enumerate}
+    \item[a)] This scenario has right-censoring since we aren't able to say that the individual didn't contract cancer at any point after the end of the study. This individual's likelihood contribution is $S(y_1;\theta) q(y_1)$.
+    \item[b)] This is interval censoring: we know he had to contract cancer at some point between the fourth and fifth examination; however, the exact point in time is unknown (could be anywhere in that three year span). 
+    \item[c)] I'm told this situation exhibits right-censoring -- I disagree with the convention that makes this so -- because, death from some cause other than the one we're trying to observe (ultimately) obscures our chance to determine when our event-of-interest will take place.
+    \item[d)] I'm assuming once the individual moved away, he stoped showing up to examinations. In which case, this is a classic example of right-censoring. We cannot say if cancer \textit{won't} be contracted later on. For a point of specificity, the censoring occured during the individual's 54th year. Two years before he moved away.
+  \end{enumerate}
+  
+\paragraph{\#2.}
+  \begin{enumerate}
+    \item[a)] First, note that for a continuous, random variable, $X$ with density $f$, survival function $S$ and hazard function $\lambda$, 
+    \[
+    \lambda(x) = \frac{f(x)}{S(x)} = \frac{-S'(x)}{S(x)} = -\frac{d \log(S(x))}{dx}
+    \]
+    Thus, for a collection of non-negative, continuous random variables, $T_1, \ldots, T_n$ with hazard functons $h_1, \ldots, h_n$, 
+    \begin{align*}
+      P(R_n \geq x) &= P(\min\set{T_1,\ldots, T_n} \geq x) \\
+                    &= \prod_{i=1}^{n} P(T_i \geq x) \\
+                    &= \prod_{i=1}^{n} S_{T_i}(x)
+      \intertext{Hence,}
+      \log(S_{R_n}(x)) &= \SUM{i}{1}{n} \log(S_{T_i}(x)), 
+      \intertext{and therefore,}
+      -\lambda_{R_n}(x) &= \SUM{i}{1}{n} \dfrac{d}{dx}\log(S_{T_i}(x)) \\
+                        &= \SUM{i}{1}{n} - h_{i}(x)
+    \end{align*}
+    Thus, it has been shown that the hazard function for a minimum of independent random variables is the sum of the hazard functions.
+    \item[b)] Using the the work above, it has been shown that
+    \[
+      S_{R_n}(x) = \prod_{i=1}^{n} S_{T_i}(x)
+    \]
+    However, if $T_i \sim Weib(k,\beta_i)$, then $S_{T_i}(x) = \exp\set{-(\beta_i x)^k}$, and thus,
+    \[
+      S_{R_n}(x) = \prod_{i=1}^{n} \exp\set{-(\beta_i x)^k} = \exp\set{-x^k\SUM{i}{1}{n}\beta_i^k} = \exp\set{-(\alpha x)^k}
+    \]
+    where $\alpha = \sqrt[n]{\SUM{i}{1}{n}\beta_i^k}$. Now, because there's a one-to-one correspondence between Survival and Distribution functions, and the latter uniquely identify random variable, we've actually shown that $R_n$ must, also, be a Weibull random variable, with shape parameter $k$, and scale parameter $\alpha$. 
+  \end{enumerate}
+  
+  \paragraph{\#3.} Let $F$, $S$, and $\Lambda$ denote the distribution, survival, and cumulative hazard functions of the random variable $T$ with $F$ strictly increasing and differentiable (therefore invertible, and yielding a probability density). It then follows that
+  \begin{align*}
+    S_{\Lambda(T)}(x) &= P(\Lambda(T) \geq x) \\
+                      &= P(-\log(S(T)) \geq x) \\
+                      &= P(S(T) \leq e^{-x}) \\
+                      &= P(1-F(T) \leq e^{-x}) \\
+                      &= P(F(T) \geq 1-e^{-x}) \\
+                      &= P(T \geq F^{-1}(1-e^{-x})) \\
+                      &= S(F^{-1}(1-e^{-x})) \\
+                      &= 1-F\circ F^{-1}(1-e^{-x}) \\
+                      &= e^{-x}
+  \end{align*}
+  Hence, the survival function for $\Lambda(T)$ corresponds to that of a random variable who's distribution follows $Exp(\beta=1)$, the standard exponential.
+\end{document}
