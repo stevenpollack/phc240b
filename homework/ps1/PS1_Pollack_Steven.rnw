@@ -20,7 +20,7 @@
 \renewcommand{\N}{\mathcal{N}}
 \newcommand{\K}{\mathcal{K}}
 \newcommand{\U}{\mathcal{U}}
-\newcommand{\I}{\mathcal{I}}
+\newcommand{\I}{\mathbb{I}}
 \newcommand{\X}{\mathbf{X}}
 \newcommand{\Y}{\mathbf{Y}}
 \DeclareMathOperator{\sgn}{sgn}
@@ -60,10 +60,10 @@ opts_chunk$set(comment="#",tidy=F,warning=FALSE,message=FALSE,highlight=FALSE,ec
 \paragraph{\#1} %Using the notation from slide 8, of Chapter 2's notes, we'll assume that the individuals' ``time until cancer'', $T_i$, are iid with density $f(t;\theta)$, and survival function $S(t;\theta)$. We'll also assume the censoring mechanism, $C_i$, has density $q(c)$ and survival function $Q(c)$. 
   Note that because the study only recruited ``disease-free'' individuals, immediately, we have left-truncation. 
   \begin{enumerate}
-    \item[a)] This scenario has right-censoring since we aren't able to say that the individual didn't contract cancer at any point after the end of the study. This individual's likelihood contribution is $S(y_1;\theta) q(y_1)$.
-    \item[b)] This is interval censoring: we know he had to contract cancer at some point between the fourth and fifth examination; however, the exact point in time is unknown (could be anywhere in that three year span). 
-    \item[c)] I'm told this situation exhibits right-censoring -- I disagree with the convention that makes this so -- because, death from some cause other than the one we're trying to observe (ultimately) obscures our chance to determine when our event-of-interest will take place.
-    \item[d)] I'm assuming once the individual moved away, he stoped showing up to examinations. In which case, this is a classic example of right-censoring. We cannot say if cancer \textit{won't} be contracted later on. For a point of specificity, the censoring occured during the individual's 54th year. Two years before he moved away.
+    \item[a)] This scenario has right-censoring since we aren't able to say that the individual didn't contract cancer at any point after the end of the study. This individual's likelihood contribution is $P( T \geq 60 \mid T \geq 30)$.
+    \item[b)] This is interval censoring: we know he had to contract cancer at some point between the fourth and fifth examination; however, the exact point in time is unknown (could be anywhere in that three year span). This individual's likelihood contribution is $P( 52 \leq T \leq 55 \mid T \geq 40)$.
+    \item[c)] I'm told this situation exhibits right-censoring -- I disagree with the convention that makes this so -- because, death from some cause other than the one we're trying to observe (ultimately) obscures our chance to determine when our event-of-interest will take place. This individual's likelihood contribution is $P( T \geq 61 \mid T \geq 50)$.
+    \item[d)] I'm assuming once the individual moved away, he stoped showing up to examinations. In which case, this is a classic example of right-censoring. We cannot say if cancer \textit{won't} be contracted later on. For a point of specificity, the censoring occured during the individual's 54th year. Two years before he moved away. This individual's likelihood contribution is $P( T \geq 54 \mid T \geq 42)$.
   \end{enumerate}
   
 \paragraph{\#2.}
@@ -108,4 +108,56 @@ opts_chunk$set(comment="#",tidy=F,warning=FALSE,message=FALSE,highlight=FALSE,ec
                       &= e^{-x}
   \end{align*}
   Hence, the survival function for $\Lambda(T)$ corresponds to that of a random variable who's distribution follows $Exp(\beta=1)$, the standard exponential.
+  
+  \paragraph{\#4.}
+  \begin{enumerate}
+    \item[a)] Using the identity
+    \[
+    E[ X \mid Y \in \A] = \dfrac{E[X \, \I(Y \in \A)]}{P(Y \in \A)}
+    \]
+    We have that
+    \begin{align*}
+      m(t) &= E[ T-t \mid T > t]\\
+           &= \dfrac{E[ (T-t) \I(T > t)]}{P(T > t)} \\
+           &= \int_{t}^{\infty} (\omega - t) \, \frac{dF(\omega)}{S(t)} \\
+           &= \int_{t}^{\infty} (t-\omega) \, \frac{dS(\omega)}{S(t)} \\
+           &= (t-\omega) \frac{S(\omega)}{S(t)} \biggr|_{\omega=t}^{\infty} + \int_{t}^{\infty} S(\omega) \, \frac{d\omega}{S(t)} \\
+           &= \lim_{\omega\to\infty} -\omega S(\omega) + \dfrac{\int_{t}^{\infty}S(\omega)\, d\omega}{S(t)}
+    \end{align*}
+    Now, the last equation holds for all $t \geq 0$, and thus if we assume the existence of $m(0) = E(T)$ (a mild assumption), we have that
+    \[
+    m(0) = \lim_{\omega\to\infty} -\omega S(\omega) + {\int_{0}^{\infty}S(\omega)\, d\omega} < \infty
+    \]
+    Hence, $\lim_{\omega\to\infty} -\omega S(\omega) = 0$, which implies that
+    \[
+    m(t) = \dfrac{\int_{t}^{\infty}S(\omega)\, d\omega}{S(t)}
+    \]
+    \item[b)] This is straight from a first semester ODE's course:
+    \begin{align*}
+    &&m(t) &= \frac{\int_{t}^{\infty} S(u) \, du}{S(t)} \\
+    &\EQ& S(t)m(t) &= \int_{t}^{\infty} S(u) \, du \\
+    &\EQ& S'(t) m(t) + S(t)m'(t) &= -S(t) \\
+    &\EQ& \frac{S'(t)}{S(t)} &= - \frac{1+m'(t)}{m(t)} \\
+    &\EQ& \frac{d}{dt}\log(S(t)) &= - \frac{1+m'(t)}{m(t)} \\
+    &\EQ& \log(S(x)) &= -\int_{0}^{x}\frac{1+m'(t)}{m(t)} \, dt \\
+    &\EQ& S(x) &= \exp\left(-\int_{0}^{x}\frac{1+m'(t)}{m(t)} \, dt \right)
+    \end{align*}
+    \item[c)] If $T \sim Exp(\beta)$, then $S(t) = e^{-\beta t}$, and from the formula in part a:
+    \[
+    m(t) = \dfrac{\int_{t}^{\infty} e^{-\beta x} \, dx}{e^{-\beta t}} = e^{\beta t} \cdot \left(\frac{-1}{\beta} e^{-\beta x}\right)_{x=t}^{\infty} = \frac{1}{\beta}
+    \]
+    That is, $E[T-t | T > t] = \beta^{-1}$ for all $t \geq 0$. This says your mean residual life is the same, regardless of how long you've survived. This shouldn't be a shocker, given that we already knew that the hazard function is constant (i.e. $h(t) = \beta$). What's interesting, here, however is that as you try to minimize your hazard, you inadvertently extend your mean residual lifetime (MRL). For example, a person who has half the hazard rate of another person will have double that person's MRL.
+  \end{enumerate}
+  
+  \paragraph{\#5.}
+%   Suppose that data are available on a reasonably homogeneous group of patients with renal failure. All patients are initially on dialysis and the time at which they start this treatment is the time origin for each patient. All patients are observed until death. Depending on the availability of suitable donor kidneys, some patients in due course receive a kidney transplant. It is required to compare the survival under dialysis and after transplant. Criticize qualitatively the following two procedures:
+% (a) Form two groups of patients, those never transplanted and those receiving a transplant. Compare the two distributions of time from entry to death, regardless of the time of transplant, i.e., time on dialysis of the transplanted patient is “credited” to transplant;
+% (b) For the transplanted patients, take a new time origin at the instant of transplant and compare the distributions of time to death for the “dialysis only” group with that of time from transplant to death for the transplanted group.
+  \begin{enumerate}
+    \item[a)] Inside the group of patients receiving the transplant, this scheme blindly attributes all variation in survival time to the kidney transplant. This is a problem since there's no reason to believe that the two treatments, dialysis and transplant, can't have some sort of ``mixed'' effect on survival time.
+    \item[b)] Assume that it turns out that there should be no difference between dialysis and kidney transplants (i.e. a person's time to death shouldn't be affected by either procedure). Then, by taking a new time origin once a person gets a kidney transplant, we're systematically under-estimating how effective kidney transplants are (relative to a dialysis-only treatment), since an individual would (presumably) die at the same time with or without the transplant. If, however, it turns out that dialysis is not a sustainable substitute for a kidney transplant, and the treatment hurts has a negative effect on an individual's lifespan, then (again) creating a new time origin for the instant of the transplant will introduce under-estimation because the individual's lifespan has already been negatively effected by the dialysis. 
+  \end{enumerate}
+
+  One way to avoid these issues is by pairing individuals who enrolled at roughly the same time, but where one got a transplant and the other didn't. In this regard, you can look at the difference in survival times as an indicator of efficacy. In particular, if you have $n$ pairs $(T^{d}_{1}, T^{t}_{1}), (T^{d}_{2}, T^{t}_2), \ldots, (T^{d}_{n}, T^{t}_{n})$, then $ \overline{T^{t}} - \overline{T^{d}} $ can stand to estimate, on average, how much more effective transplants are, over dialysis (alone). 
+
 \end{document}
