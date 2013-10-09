@@ -1,0 +1,360 @@
+\documentclass[12pt,titlepage]{article}
+
+\usepackage{mcgill,fancyhdr,palatino}
+
+%%%%% knitr code to make sure things stay inside listings box:
+\usepackage{listings}
+\usepackage{inconsolata}
+
+\lhead{PHC240B}
+\chead{Problem Set \#2}
+\rhead{Steven Pollack -- 24112977}
+\cfoot{\thepage}
+
+\title{PHC240B \\ Problem Set \#2}
+\author{Steven Pollack \\ 24112977}
+\date{}
+
+\renewcommand{\Q}{\mathcal{Q}}
+\renewcommand{\H}{\mathcal{H}}
+\renewcommand{\N}{\mathcal{N}}
+\newcommand{\K}{\mathcal{K}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\I}{\mathbb{I}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\col}{col}
+\DeclareMathOperator{\proj}{proj}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\expit}{expit}
+\DeclareMathOperator{\argmin}{argmin}
+\DeclareMathOperator{\argmax}{argmax}
+
+\begin{document}
+\maketitle
+\pagestyle{empty}
+\newpage
+\pagestyle{fancy}
+
+<<globalParameters,echo=FALSE>>=
+set.seed(1234)
+opts_chunk$set(comment="#",tidy=F,warning=FALSE,message=FALSE,highlight=FALSE,echo=F,cache=T)
+# library(ggplot2)
+# library(reshape2)
+# load('solutions.Rdata')
+@
+
+<<stayInside,echo=FALSE>>=
+  options(width=60)
+  listing <- function(x, options) {
+     paste("\\begin{lstlisting}[basicstyle=\\ttfamily,breaklines=true]\n", x,"\\end{lstlisting}\n", sep = "")
+  }
+  
+  knit_hooks$set(source=listing, output=listing)
+@
+
+\paragraph{\#1}
+
+\begin{enumerate}
+  \item[a)] 
+  <<prob1a>>=
+  # Use the exponential, Weibull and gamma distributions to model the time from randomization until death in patients assigned to the experimental treatment group. Report point estimates and approximate 95% confidence intervals for each involved parameter.
+  require(survival)
+  require(flexsurv)
+  
+  testPatients <- subset(veteran,trt==2)
+  testPatSurvObj <- with(data=testPatients,expr={Surv(time,status,type="right")})
+  
+  ### exponential fit
+  expFit <- flexsurvreg(testPatSurvObj ~ 1, dist="exp")
+  #expFit$res
+  
+  ### weibull fit
+  weibullFit <- flexsurvreg(testPatSurvObj ~ 1, dist="weibull")
+  #weibullFit$res
+  
+  ### gamma fit
+  gammaFit <- flexsurvreg(testPatSurvObj ~ 1, dist="gamma")
+  #gammaFit$res
+  
+  ### generalized gamma fit
+  genGammaFit <- flexsurvreg(testPatSurvObj ~ 1, dist="gengamma")
+  #genGammaFit$res
+  
+  ### plot the fits
+  #plot(expFit,ci=F,col="red")
+  #lines(weibullFit,ci=F,col="green")
+  #lines(gammaFit,ci=F,col="yellow")
+  @
+  For the exponential model, we get an estimate of $\hat{\beta} = \Sexpr{expFit$res[1]}$ with 95\% confidence interval (\Sexpr{paste(round(expFit$res[2:3],digits=4),collapse=", ")}).
+  
+  For the Weibull model, we get an estimate of the scale, $\hat{k} = \Sexpr{weibullFit$res[2]}$ with 95\% confidence interval (\Sexpr{paste(round(weibullFit$res[2,2:3],digits=4),collapse=", ")}) and an estimate of the shape, $\hat{\lambda} = \Sexpr{weibullFit$res[1]}$ with 95\% confidence interval (\Sexpr{paste(round(weibullFit$res[1,2:3],digits=4),collapse=", ")}).
+  
+  For the Gamma model, we get an estimate of the shape, $\hat{\alpha} = \Sexpr{gammaFit$res[1]}$ with 95\% confidence interval (\Sexpr{paste(round(gammaFit$res[1,2:3],digits=4),collapse=", ")}) and an estimate of the rate, $\hat{\beta} = \Sexpr{gammaFit$res[2]}$ with 95\% confidence interval (\Sexpr{paste(round(gammaFit$res[2,2:3],digits=4),collapse=", ")}).
+  \item[b)]
+  <<prob1b,results='hide'>>=
+  # Discuss the adequateness of the exponential, Weibull, gamma and generalized gamma distributions using the likelihood ratio test.
+  
+  modelLikelihoods <- c(genGammaFit$loglik, gammaFit$loglik, weibullFit$loglik, expFit$loglik)
+  
+  lrtMat <- outer(modelLikelihoods,modelLikelihoods,FUN=function(x,y){-2*(x-y)})
+  colnames(lrtMat) <- rownames(lrtMat) <- c("Gen Gamma","Gamma", "Weibull", "Exponential")
+  lrtMat
+  @
+  When using the Gamma, Weibull, and exponential models as null models and testing against them with the Generalize Gamma model as the alternative model, we get likelihood-ratio test statistics with values \Sexpr{paste(round(lrtMat[-1,1],digits=2),collapse=", ")}, respectively.
+  \item[c)] Recall that, provided we haven't misspecified the model, the (parametric) maximum likelihood estimator, ${\beta}_n$, is asymptotically normal with mean $\beta_0$ and some variance $\sigma^2$. Hence, 
+  \[
+  P( \beta_n - z_{0.975} \sigma_n \leq \beta_0 \leq \beta_n + z_{0.975} \sigma_n ) \approx 0.95
+  \]
+  Thus,
+  \begin{align*}
+  0.95 &\approx P( \beta_n - z_{0.975} \sigma_n \leq \beta_0 \leq \beta_n + z_{0.975} \sigma_n ) \\
+  &= P \left( -t_0 \left(\beta_n - z_{0.975} \sigma_n\right) \geq -t_0 \beta_0 \geq -t_0\left(\beta_n + z_{0.975} \sigma_n\right) \right) \\
+  &= P \left( \exp\set{-t_0 \left(\beta_n - z_{0.975} \sigma_n\right)} \geq \exp\set{-t_0 \beta_0} \geq \exp\set{-t_0\left(\beta_n + z_{0.975} \sigma_n\right)} \right) \\
+  &= P \left( \exp\set{-t_0 \left(\beta_n - z_{0.975} \sigma_n\right)} \geq S(t_0) \geq \exp\set{-t_0\left(\beta_n + z_{0.975} \sigma_n\right)} \right) 
+  \end{align*}
+  Moreover, it follows from results of Z-estimators that $\beta_n$ is asymptotically linear with influence curve, $IC$, and variance $\sigma^2 = E[IC^2(Y)]$. Using this, the delta method, and the fact that asymptotic linearity is preserved by smooth mappings we have that $\ln(\beta_n)$ is asymptotically linear with mean $\ln(\beta_0)$ and variance
+  \[
+   E\left[ \left(\frac{d}{dx} ln(x) \biggr|_{x=\beta_0} IC(Y)\right)^2 \right] = E\left[ \dfrac{IC^2(Y)}{\beta_0^2} \right] = \frac{\sigma^2}{\beta_{0}^2}
+  \]
+  Hence, 
+  \begin{align*}
+   0.95 &\approx P\left( \frac{\ord{\log(\beta_n) - \log(\beta_0)}}{\sigma/\beta_0} \leq z_{0.975} \right) \\
+   &\approx P\left( \frac{\ord{\log(\beta_n) - \log(\beta_0)}}{\sigma_n/\beta_n} \leq z_{0.975} \right) \\
+   &= P\left( \ord{\log(\beta_n/\beta_0)} \leq \frac{z_{0.975}\sigma_n}{\beta_n} \right) \\
+   &= P\left( -\frac{z_{0.975}\sigma_n}{\beta_n} \leq \log\left(\frac{\beta_0}{\beta_n}\right) \leq \frac{z_{0.975}\sigma_n}{\beta_n} \right) \\
+   &= P\left( -t_0\beta_n \exp\set{-\frac{z_{0.975}\sigma_n}{\beta_n}} \geq -t_0 \beta_0 \geq -t_0\beta_n \exp\set{\frac{z_{0.975}\sigma_n}{\beta_n}} \right) \\
+   &= P\left( \exp\set{-t_0\beta_n \exp\set{-\frac{z_{0.975}\sigma_n}{\beta_n}}} \geq S(t_0) \geq \exp\set{-t_0\beta_n \exp\set{\frac{z_{0.975}\sigma_n}{\beta_n}}} \right)
+  \end{align*}
+  \item[d)] Assuming the data actually came from an $Exp(\beta_0)$ distribution, we know that the score for $\beta$ from an observation is $U(\beta; y,\delta) = \delta/\beta - y$. Hence, an estimate of the Fischer Information of our estimator is
+  \[
+    \frac{1}{n} \SUM{i}{1}{n} -U'(\beta_0; y_i,\delta_i) = \SUM{i}{1}{n}\frac{\delta_i}{n\beta_0^2} \approx  \SUM{i}{1}{n}\frac{\delta_i}{n\beta_n^2} := \hat{\mathcal{I}}_{n}
+  \]
+    <<prob1d>>=
+    n <- dim(testPatients)[1]
+    z <- qnorm(0.975)
+    beta_n <- expFit$res[1]
+    observedInfo <- sum(testPatients$status)/(n*beta_n^2)
+    approxSE <- sqrt(1/observedInfo)
+    sigma_n <- approxSE/sqrt(n)
+    modelSurvivalFunction <- function(t) exp(-t*beta_n)
+    CI1 <- function(t) exp(-t*(beta_n + c(1,-1)*z*sigma_n))
+    CI2 <- function(t) exp(-t*beta_n*exp(c(1,-1)*z*sigma_n/beta_n))
+    pointEstimate <- modelSurvivalFunction(100)
+    int1 <- pmin(CI1(100),1)
+    int2 <- CI2(100)
+  @
+  which we can then invert to yield an estimate of the asymptotic variance of $\beta_n$. From our data, $\widehat{\sigma}_{n} = \sqrt{\hat{\mathcal{I}}_{n}^{-1}} = \Sexpr{approxSE}$; hence, our point estimate for $S(100) = \Sexpr{pointEstimate}$ and the first interval in part c) is (\Sexpr{paste(round(int1,digits=4),collapse=", ")}) while the second is (\Sexpr{paste(round(int2,digits=4),collapse=", ")}).
+\end{enumerate}
+
+\newcommand{\Exp}{\mathcal{E}xp}
+\paragraph{\#2}
+\begin{enumerate}
+  \item[a)] By definition, $m_n = \SUM{i}{1}{n} \delta_i$. However, $\delta_i$ are individual realizations of $\Delta$, thus, $m_n$ is a realization of \[ M_n = \SUM{i}{1}{n} \Delta_i = \SUM{i}{1}{n} I(T_i \in [0,c])\] That is, $M_n$ is a sum of IID Bernoulli random variables which shows that $M_n$ is a binomial random variable. To determine the probability of success, we compute $E(I(T_i \in [0,c]))$:
+  \begin{align*}
+    E(I(T_i \in [0,c])) &= P(T_i \in [0,c]) \\
+    &= P(T_i \leq c) = 1-S(c) \\
+    &= 1-e^{-\beta_0 c}
+  \end{align*}
+  Where we used the fact that $T_i \iid \Exp(\beta_0)$ to write $S(c) = e^{-c\beta_0}$. Hence, $M_n \sim Bin(n,1-e^{-\beta_0 c})$.
+  \item[b)] The joint sufficiency of $(w_n, m_n)$ for $\beta$ follows from the Fischer-Neyman factorization theorem:
+    \begin{align*}
+      P(\vec{y},\vec{\delta};\beta) &= \prod_{i=1}^{n}\left(f(y_i;\beta) Q(y_i)\right)^{\delta_i}\left(S(y_i;\beta)q(y_i)\right)^{1-\delta_i} \\
+      &= \prod_{i=1}^{n}\left(\beta e^{-\beta y_i} Q(y_i)\right)^{\delta_i}\left(e^{-\beta y_i} q(y_i)\right)^{1-\delta_i} \\
+      &= \left(\prod_{i=1}^{n}Q(y_i)^{\delta_i}q(y_i)^{1-\delta_i} \right) \beta^{\SUM{i}{1}{n}\delta_i} e^{-\beta \SUM{i}{1}{n}y_i} \\
+      &= g\left(\vec{y},\vec{\delta}\right) h(\beta, w_n, m_n)
+    \end{align*}
+    \item[c)] If just $m_n$ is avaible, consider the PMF of $M_n$,
+    \[
+      P(M_n = m_n;\beta) = \binom{n}{m_n}p_0(\beta)^{m_n}(1-p_0(\beta))^{n-m_n} 
+    \]
+    and recall that the MLE of $p_0(\beta) = 1-e^{-c\beta }$ is $m_n/n$ with asymptotic variance $p_0(1-p_0)$. Thus, through the invariance of the MLE and the delta-method, we have that
+    \[
+      1-e^{-c\beta_{MLE}} = \frac{m_n}{n} \EQ  \beta_{MLE}= -\frac{1}{c}\log\left(1-\frac{m_n}{n}\right) = c^{-1}\log\left(\frac{n}{n-m_n}\right)
+    \]
+    and
+    \[
+    \sigma^2_{MLE} = \left(-c^{-1}\frac{d}{dx}\log(1-x)\right)_{x=p_0}^2 p_{0}(1-p_0) = \frac{p_0}{c^2(1-p_0)} = \frac{e^{c\beta_0}-1}{c^2}
+    \]
+    Hence, $\sqrt{n}(\beta_{MLE}-\beta_0) \to \N(0,c^{-2}(e^{c\beta_0}-1))$. 
+    \item[d)] If $m_n$ and $w_n$ are both available, 
+    \begin{align*}
+      && \L(\beta) &= \beta^{m_n} e^{-\beta w_n} \prod_{i=1}^{n} Q(y_i)^{\delta_i}q(y_i)^{1-\delta_i} \propto \beta^{m_n} e^{-\beta w_n} \\
+     \implies&&  \ell'_n(\beta) &= \frac{m_n}{\beta}  - w_n \\
+     \implies&&  \beta_{MLE} &= \frac{m_n}{w_n}
+    \end{align*}
+    Thus, from the asymptotic normality of the MLE, we know that 
+    \[ 
+    \sqrt{n\mathcal{I}(\beta_0)}\left(\beta_{MLE}-\beta_0\right) \xrightarrow{n\to\infty} \N(0,1) 
+    \]
+    where (from part a.) we find
+    \[
+    \mathcal{I}(\beta_0) = E\left(-\ell_{1}''(\beta_0) \right) = \frac{E(M_1)}{\beta_{0}^{2}} = \frac{1-e^{-\beta_0 c}}{\beta_{0}^{2}}
+    \]
+    \item[e)] If we compare the variance in parts d and c, we have
+    \[
+    \frac{\text{full data variance}}{\text{death count variance}} = \frac{1-e^{-c \beta_0}}{\beta_{0}^{2}} \frac{c^2}{e^{c\beta_0}-1} =  \frac{c^2}{\beta_0^2 e^{c\beta_0}}
+    \]
+    Which quickly becomes less than one as the study length increases. Thus, for a short-term study, we only get neglible decreases in asymptotic variance; meaning, you may be able to get away with working with death count only.
+\end{enumerate}
+
+\paragraph{\#3.}
+\begin{enumerate}
+  \item[a)] if $T$ comes from a distribution with hazard function $\lambda(t) = \mu \nu^t$, then it has survival function
+  \begin{align*}
+    S(t) &= \exp\left(-\int_{0}^{t} \lambda(x) \, dx\right) \\
+    &= \exp\left(-\int_{0}^{t} \mu \nu^x \, dx \right) \\
+    &= \exp\left(-\frac{\mu}{\ln(\nu)} \nu^{x}\biggr|_{x=0}^{t}\right) \\
+    &= \exp\left(\frac{\mu}{\ln(\nu)} - \frac{\mu \nu^x}{\ln(\nu)}\right)
+  \end{align*}
+  Hence, if $\nu > 0$
+  \[
+    P(T = + \infty) = \lim_{x\to\infty} S(x) = \exp\left(\frac{\mu}{\ln(\nu)}\right)
+  \]
+  which is a positive probability whenever $\nu \in (0,1)$.
+  \item[b)] If $W \sim Weibull(1/\beta, k)$, then $S_{W}(x) = e^{-(\beta x)^k} I(x \geq 0)$. Furthermore, for $x \geq 0$, 
+  \begin{align*}
+    P(\ln(W) \geq x \given{\ln(W) > 0}) &= \frac{P(\ln(W) \geq \max(x,0))}{P(\ln(W) > 0)} \\
+    &= \frac{S_{W}(e^{x})}{S_{W}(1)} \\
+    &= e^{\beta^k}e^{-(e^x\beta)^k} \\
+    &= \exp\left(-\beta^k\left( (e^{k})^x -1 \right) \right)
+  \end{align*}
+  Thus, if we set $V := \ln(W)$, $\nu := e^{k}$, and $\mu := k \beta^k$, we have that
+  \[
+    S_{V}(x) = \exp\left(\frac{\mu}{\ln(\nu)} - \frac{\mu \nu^x}{\ln(\nu)}\right)
+  \]
+  which is the Gompertz survival function with parameters $\mu$ and $\nu$. 
+  \item[c)] Using the identity $f(t)= \lambda(t) S(t)$, and the relationship
+  \[
+  \L_{n}(\mu,\nu) \propto \prod_{i=1}^{n} f(y_i;\mu,\nu)^{\delta_i} S(y_i;\mu,\nu)^{1-\delta_i} = \prod_{i=1}^{n} \lambda(y_i;\mu,\nu)^{\delta_i} S(y_i;\mu,\nu)
+  \]
+  It follows that
+  \begin{align*}
+  && \L_{n}(\mu,\nu) &\propto  \mu^{a_n} \nu^{b_n} \exp\set{-\frac{\mu}{\ln(\nu)}\left(c_{n}(\nu)-n\right)} \\
+  \Implies&& \ell_{n}(\mu,\nu) &= a_n\ln(\mu) + b_n\ln(\nu) -\frac{\mu}{\ln(\nu)}(c_n(\nu)-n) + c \\
+  \Implies&& \frac{\partial}{\partial\mu}\ell_{n}(\mu,\nu) &= \frac{a_n}{\mu} - \frac{c_{n}(\nu)-n}{\ln(\nu)} \tag{1}\\ 
+  \Implies&& \frac{\partial}{\partial\nu}\ell_{n}(\mu,\nu) &= \frac{b_n}{\nu} - \mu\left(\frac{c'_{n}(\nu)}{\ln(\nu)}-\frac{c_{n}(\nu)-n}{\nu\ln(\nu)^{2}}\right) \\
+  &&&= \frac{b_n}{\nu} - \frac{\mu}{\ln(\nu)}\left(d_{n}(\nu)-\frac{c_{n}(\nu)-n}{\nu\ln(\nu)}\right) \tag{2}
+  \end{align*}
+  \item[d)] To find $(\mu^{*},\nu^{*})$, solutions to $\nabla \ell_{n}(\mu,\nu) = 0$, we first solve for $\mu$ in (1):
+  \[
+    \mu^{*} = \frac{a_n \ln(\nu^*)}{c_n(\nu^*) - n} 
+  \]
+  and substituting $\mu^{*}$ into (2), we take $\nu^{*}$ to be the solution to 
+  \begin{align*}
+    0 &= \frac{b_n}{\nu^*} - \frac{a_n}{c_n(\nu^*)-n}\left(d_{n}(\nu^*)-\frac{c_{n}(\nu^*)-n}{\nu^*\ln(\nu^*)}\right) \\
+    &= \frac{b_n}{\nu^*} - \frac{a_n d_{n}(\nu^*)}{c_n(\nu^*)-n} + \frac{a_n}{\nu^* \ln(\nu^*)}  \tag{3}
+  \end{align*}
+  \item[e)] Examine $\nabla^{T}\nabla \ell_{n}(\mu,\nu)$. 
+  \item[f)] 
+  <<prob2f,out.width="0.65\\textwidth",dev='pdf',fig.align='center',fig.cap="Fit of Gompertz and exponential distributions to \\texttt{diabetes} data. Exponential fit is in red, Gompertz in green, KM-estimator in black.">>=
+    library(timereg)
+    data(diabetes)
+    treatedPatients <- subset(diabetes,treat==1)
+    treatedPatientsSurv <- Surv(treatedPatients$time,treatedPatients$status,type="right")
+    
+    gompertzFit <- flexsurvreg(treatedPatientsSurv~1,dist="gompertz")
+  
+    # flexsurvreg:dgompertz uses parameters (shape,rate)
+    # where shape = log(nu) and rate = mu
+    nu.hat <- exp(gompertzFit$res[1,])
+    mu.hat <- gompertzFit$res[2,]
+    
+    # so if this Gompertz came from a Log(Weibull), it would have to be from a Weibull with parameters, k beta^k = mu and e^k = nu <=> k = log(nu), beta = sqrt[k](mu/k)
+    k.hat <- gompertzFit$res[1,]
+    expFit <- flexsurvreg(treatedPatientsSurv~1,dist="exp")
+    plot(gompertzFit,ci=F,col="green")
+    lines(expFit,ci=F,col="red")
+  @
+  Using \texttt{flexsurv} to fit a Gompertz distribution, and then transforming the parameters (the reported ``shape'' parameter is actually $\ln(\nu)$) we get $\hat{\mu} = \Sexpr{mu.hat[1]}$ with 95\% confidence interval (\Sexpr{paste(round(mu.hat[2:3],digits=4),collapse=", ")}) and $\hat{\nu} = \Sexpr{nu.hat[1]}$ with 95\% confidence interval (\Sexpr{paste(round(nu.hat[2:3],digits=4),collapse=", ")}).
+  
+  Now, we know that the hazard function for $X \sim Exp(\beta)$ is the constant function $\lambda_{X}(t) = \beta$, and when $\nu \equiv 1$, a Gompertz random variable has a hazard function which is constant in $\mu$. So, using the fact that  hazard functions uniquely identify distributions (a consequence of the fact that Survival functions uniquely identify distributions), it then follows that a Gompertz random variable with $\nu \approx 1$ and rate $\mu$ may be approximated by an exponential random variable with inverse rate $\mu$. However, as we can see, our 95\% confidence interval for $\nu$ does not contain 1 (and is fairly narrow), so it probably isn't a good idea to try an exponential approximation. (Note that we can see how badly the exponential distribution fits the data in figure 1.)
+\end{enumerate}
+
+\paragraph{\#4}
+\begin{enumerate}
+  \item[a)] If $T_1, \ldots, T_{r} \iid \Exp(\mu^{-1})$, then
+  \begin{align*}
+    && \L(\mu) &= \prod_{i=1}^{r} f(t_i;\mu) \\
+    && &= \mu^{-r} \exp\set{-\frac{1}{\mu}\SUM{i}{1}{r}t_i} \\
+    \Implies&& \ell_{r}'(\mu) &= -\frac{r}{\mu} + \frac{1}{\mu^2}\SUM{i}{1}{r}t_i
+  \end{align*}
+  Hence, the solution to $\ell_{r}'(\mu)=0$ is $\mu_{1,r} = \overline{t}_{r}$. Now, we can use the fact that exponential random variables are special cases of gamma random variables (and that the gamma distribution is infinitely divisible) to conclude that $\mu_{1,r} \sim \Gamma(\text{shape}=r,\text{rate}=r/\mu_0)$.
+  \item[b)] In study $E_2$, we notice that while there is censoring, it is deterministic in nature. That is, the censoring survival function can be written as
+  \[
+    Q(x) = \int_{x}^{\infty} q(t) \, dt = \int_{x}^{\infty} \delta(t-t_{(r)}) \, dt =
+    \begin{cases}
+      1 &\text{ if $x \leq t_{(r)}$} \\
+      0 &\text{ if $x > t_{(r)}$}
+    \end{cases}
+  \]
+  where $\delta(x)$ is the dirac delta function. Hence, the likelihood of our data is
+  \begin{align*}
+    \L(\mu) &= \prod_{i=1}^{n}\left(f(y_{(i)})Q(y_{(i)})\right)^{\delta_i}\left(S(y_{(i)})q(y_{(i)})\right)^{1-\delta_i} \\
+    &= \prod_{i=1}^{r} f(t_{(i)})S(t_{(r)})^{n-r} \\
+    &= \mu^{-n} \exp\set{-\frac{1}{\mu}\left(\SUM{i}{1}{r} t_{(i)} + (n-r)t_{(r)}\right)}
+  \end{align*}
+  and 
+  \[
+    \mu_{2,n} = \frac{1}{n}\SUM{i}{1}{r} t_{(i)} + \frac{n-r}{n} t_{(r)}
+  \]
+  \item[c)] Let $T = (T_1, \ldots, T_n)$ denote the observations, $\hat{T} = (T_{(1)}, \ldots, T_{(n)})$ the ordered observations, and $D = (T_{(1)}, T_{(2)}-T_{(1)}, \ldots, T_{(n)} - T_{(n-1)})$ the consecutive waiting times. We first notice that \[ \L_{\hat{T}}(t_1, t_2, \ldots, t_n) = n! \, \L_{T}(t_1, t_2, \ldots, t_n) \] since the order statistics are just a permutation of the original observations and there are $n!$ ways to relabel the observations to be in accord with the order statitics.
+  Now, consider the situation where $(x_1, x_2, \ldots, x_n)$ is a realization of $D$. This corresponds to $t_{(1)} = x_1$, $t_{(2)} = x_1 + x_2$, $t_{(3)} = x_1 + x_2 + x_3$, etc. Hence,
+  \begin{align*}
+    \L_{D}(x_1, \ldots, x_n) &= \L_{\hat{T}}\left(x_1, x_1+x_2, \ldots, \SUM{i}{1}{n} x_i\right) \\
+    &= n! \, \L_{T}\left( t_j = \SUM{i}{1}{j} x_i, \; j=1,2,\ldots, n\right) \\
+    &= n! \, e^{-\mu_{0}^{-1}x_1} e^{-\mu_{0}^{-1}(x_1+x_2)} \cdots e^{-\mu_{0}^{-1}(x_1 + \cdots + x_n)} \\
+    &= \prod_{k=1}^{n} (n-(k-1))e^{-(n-(k-1))\mu_{0}^{-1} x_k}
+  \end{align*}
+  Thus, the likelihood of $D$ factors in to an $n$-fold product of exponential densities. This shows that the components of $D$ are mutually independent, and that 
+  \[ D_i = T_{(i)} - T_{(i-1)} \sim \Exp(\text{rate}=(n-i+1)/\mu_0)\]
+  
+  So, noting
+  \begin{align*}
+    T_{(i)} &= T_{(1)} + (T_{(2)}- T_{(1)}) + \cdots + (T_{(i-1)}-T_{(i-2)}) + (T_{(i)}-T_{(i-1)}) \\
+    &= \SUM{j}{1}{i} T_{(j)}-T_{(j-1)} \\
+    \intertext{it then follows that}
+  \SUM{i}{1}{r} T_{(i)} &= \SUM{i}{1}{r}\SUM{j}{1}{i} T_{(j)} - T_{(j-1)} \\
+  &= \SUM{j}{1}{r}\SUM{i}{j}{r}T_{(j)} - T_{(j-1)}  \\
+  &= \SUM{j}{1}{r} (r-j+1)( T_{(j)} - T_{(j-1)} )
+  \intertext{Which shows}
+  \SUM{i}{1}{r} T_{(i)} + (n-r)T_{(r)} &= \SUM{j}{1}{r} (r-j+1)( T_{(j)} - T_{(j-1)} ) + (n-r) \SUM{j}{1}{r} ( T_{(j)} - T_{(j-1)} ) \\
+  &= \SUM{j}{1}{r} (n-j+1)( T_{(j)} - T_{(j-1)} )
+  \end{align*}
+  \item[d)]Given that it was determined that $\set{D_i := T_{(i)}-T_{(i-1)}}$ form a mutually independent set of random variables, such that $D_i \sim \Exp((n-i+1)/\mu_0)$, we have that $(n-i+1) D_i \sim \Exp(1/\mu_0)$ and thus 
+  \[
+    \mu_{2,n} = \frac{1}{n} \SUM{i}{1}{r} (n-i+1) D_i \stackrel{d}{=} \SUM{i}{1}{r} \Exp(n/\mu_0) \stackrel{d}{=} \Gamma(\text{shape}=r, \text{rate}=n/\mu_0)
+  \]
+  Hence $\mathcal{I}_2^{-1} = \var(\mu_{2,n}) = r\mu_0^2/n^2$, which shows that there is $(n/r)^2$ more information in experiment 2 than experiment 1. That is,
+  \[
+    \mathcal{I}_{2} = \frac{n^2}{r^2} \mathcal{I}_1
+  \]
+  \item[e)] The length of $E_2$ is $t_{(r)}$, hence, it's expected length is
+  \begin{align*}
+    E(T_{(r)}) &= E\left(\SUM{i}{1}{r} T_{(i)} - T_{(i-1)}\right) \\
+    &= \SUM{i}{1}{r} \frac{\mu_0}{n-i+1}
+  \end{align*}
+  For $E_1$, however, we need to be a bit more delicate. The length of the study is inherits its variability from the fact that we are randomly selecting $r$ out of $n$ participants. Even though there's a total ordering on all $n$ participants, the $r^{th}$ order statistic in the pool of $n$ patients need not be the same as the $r^{th}$ order statistic in the (sub) populaton sampled from within the pool of $n$ patients. So, let $\set{S_1, \ldots, S_r} \subset \set{T_1, \ldots, T_n}$ be our random sample of $r$ patients from the greater pool of $n$. Notice that $S_{(r)}$ need not be $T_{(r)}$; it could be $T_{(r+j)}$ for $j = 0,1,\ldots, n-r$. Hence, our expected experiment length is
+  \[
+  E[S_{(r)}] = E\left(\SUM{j}{r}{n} I(S_{(r)}=T_{(j)}) T_{(j)}\right) = \SUM{j}{r}{n} E(T_{(j)}) P(S_{(r)} = T_{(j)}) \geq E(T_{(r)})
+  \]
+  Observe that we used the independence between $S_{(r)}$ and $T_{(j)}$, as well as the fact that $S_{(r)}$ must be one of the $T_{(j)}$'s in the sum, so we can make a lower bound with its PMF. A simple counting argument shows that
+  \[
+  P(S_{(r)} = T_{(j)}) = \dfrac{\binom{j-1}{r-1}}{\binom{n}{r}}
+  \]
+  (since we're selecting patients at random) and thus the expected length of the first experiment is
+  \[
+   E[S_{(r)}]  = \SUM{j}{r}{n} \SUM{i}{1}{j} \frac{\mu_0}{n-i+1} \dfrac{\binom{j-1}{r-1}}{\binom{n}{r}}
+  \]
+  The take away, here is that $n-r$ is the driving factor in the length (and therefore cost) of experiment one. Hence, if $n$ is very large, or $r$ is too small, you can expect experiment one to be costly. This isn't to say that experiment two isn't effected by $n$; it's just that experiment two is less sensitive $n-r$ than experiment one.
+  <<eval=FALSE>>=
+  exp1Length <- Vectorize(function(mu,n,r) {mu*sum(sapply(X=r:n,FUN=function(j){choose(j-1,r-1)*sum(1/(n-1:j+1))}))/choose(n,r)})
+
+  exp2Length <- Vectorize(function(mu,n,r) {sum(mu/(n-1:r+1))})
+  @
+\end{enumerate}
+\end{document}
