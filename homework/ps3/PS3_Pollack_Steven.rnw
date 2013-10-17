@@ -1,0 +1,132 @@
+\documentclass[12pt,titlepage]{article}
+
+\usepackage{mcgill,fancyhdr,palatino}
+
+%%%%% knitr code to make sure things stay inside listings box:
+\usepackage{listings}
+\usepackage{inconsolata}
+
+\lhead{PHC240B}
+\chead{Problem Set \#3}
+\rhead{Steven Pollack -- 24112977}
+\cfoot{\thepage}
+
+\title{PHC240B \\ Problem Set \#3}
+\author{Steven Pollack \\ 24112977}
+\date{}
+
+\renewcommand{\Q}{\mathcal{Q}}
+\renewcommand{\H}{\mathcal{H}}
+\renewcommand{\N}{\mathcal{N}}
+\newcommand{\K}{\mathcal{K}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\I}{\mathbb{I}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\Y}{\mathbf{Y}}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\col}{col}
+\DeclareMathOperator{\proj}{proj}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\expit}{expit}
+\DeclareMathOperator{\argmin}{argmin}
+\DeclareMathOperator{\argmax}{argmax}
+
+\begin{document}
+\maketitle
+\pagestyle{empty}
+\newpage
+\pagestyle{fancy}
+
+<<globalParameters,echo=FALSE,warning=FALSE,message=FALSE>>=
+set.seed(1234)
+opts_chunk$set(comment="#",tidy=F,warning=FALSE,message=FALSE,highlight=FALSE,echo=F,cache=T,dev='pdf',out.width="0.75\\textwidth",fig.align='center')
+library(timereg)
+data(melanoma)
+attach(melanoma)
+library(survival)
+source("ggsurv.R")
+library(xtable)
+@
+
+<<stayInside,echo=FALSE>>=
+  options(width=60)
+  listing <- function(x, options) {
+     paste("\\begin{lstlisting}[basicstyle=\\ttfamily,breaklines=true]\n", x,"\\end{lstlisting}\n", sep = "")
+  }
+  
+  knit_hooks$set(source=listing, output=listing)
+@
+
+\paragraph{\#1}
+% Malignant lesions are often excised in patients with melanoma. The survival and characteristics of 205 patients having undergone this surgical procedure at Odense University Hospital in Denmark is provided in the dataset melanoma. This dataset is available as part of the timereg package. We are interested in studying the distribution of the time from surgery until death. Consider patients alive at the end of follow-up or dead from other causes to be right-censored.
+\begin{enumerate}
+  \item[a)]  % (a) Plot the Kaplan-Meier estimator of the survival function along with (pointwise) 95% confidence intervals. Provide the associated estimate and 95% confidence interval of the 5-year survival probability. Also compute the pointwise probability of surviving at least 5 years given survival until 2 years.
+  <<prob1a,fig.cap="Kaplan-Meier estimator of survival function for melanoma data">>=
+
+# convert status to a binary situation, indicating
+# whether a patient died or not.
+is.dead <- rep(F,times=length(melanoma$status))
+is.dead[which(melanoma$status %in% c(1,3))] <- T
+
+# make survival object and fit K-M curve
+mel.surv.obj <- Surv(time=melanoma$days,event=is.dead,type="right")
+km.curve <- survfit(formula=mel.surv.obj~1,conf.int=0.95,conf.type='plain')
+
+# plot curve
+plot1a <- ggsurv(km.curve) + labs(x="Days", y=expression(paste(hat(S),"(",x,")",sep="")),title="Kaplan-Meier curve for melanoma data")
+show(plot1a)
+
+# get estimate of S(5 years), assuming right continous
+five.yrs <- 365*5
+indx.of.nearest.time <- max(which(km.curve$time <= five.yrs))
+survival.estimate <- km.curve$surv[indx.of.nearest.time] # 73.2%
+survival.estimate.ci <- c(km.curve$lower[indx.of.nearest.time],km.curve$upper[indx.of.nearest.time]) # (67.1%, 79.4%)
+
+# if left continuous, use min(which(km.curve$time >= five.yrs))
+
+# estimate P( S >= 5 | S >= 2):
+two.yrs <- 365*2
+indx.of.nearest.time2 <- max(which(km.curve$time <= two.yrs))
+survival.estimate2 <- km.curve$surv[indx.of.nearest.time2]
+conditional.estimate <- survival.estimate / survival.estimate2 # 81.6%
+@
+  We estimate the probability of survival beyond 5 years to be \Sexpr{survival.estimate} with 95\% confidence interval (\Sexpr{paste(round(survival.estimate.ci,digits=4),collapse=", ")}). Using the same K-M estimator, we estimate $P(S \geq 5 \mid S \geq 2) \approx \Sexpr{survival.estimate2}$. 
+  \item[b)] % (b) On a single figure, plot the Kaplan-Meier estimator of the survival function corresponding to the subgroups of patients with and without ulcerated lesions. Perform a logrank test to determine whether survivorship differs by ulceration status, report results and interpret your findings.
+  <<prob1b,fig.cap="K-M estimator for survival functions for patients for whom ulcerations were present and absent.">>=
+# stratify data and plot curves
+km.curve2 <- survfit(formula=mel.surv.obj~ulc,conf.type='plain')
+plot1b <- ggsurv(km.curve2,cens.col="black",CI=F) + scale_color_discrete(name="Ulcer status",breaks=c(0,1),labels=c("Absent","Present")) + scale_linetype_manual(guide=F,values=c(1,1)) + labs(x="Days",y=expression(paste(hat(S),"(",x,")",sep="")), title="K-M curves for patients with varying ulcer stati")
+show(plot1b)
+
+# do log-rank test
+logrankTest.results <- survdiff(formula=mel.surv.obj~ulc,rho=0) # p-value < 1e-6
+@
+Using the \texttt{survdiff} function from the \texttt{survival} package, we can calculate a weighted log-rank test, and calculate a p-value using the fact that the test statistic is approximately distributed according to a $\chi^2$-distribution for $n$-large. The test results yield a statistic with value $t = \Sexpr{logrankTest.results$chisq}$, 1 degree of freedom, and $\text{p-value} = \Sexpr{pchisq(logrankTest.results$chisq,df=1,lower.tail=F)}$. Thus, we have good reason to believe that there is a difference between the survival functions for those who have ulcerations and those who do not.
+there's a good reason to believe ulcerated people have different hazards.
+  \item[c)] %# (c) Fit a Cox proportional hazards model for the survival time, including ulceration status, lesion thickness and gender as main-effect terms. Report a point estimate, standard error, 95% confidence interval and p-value for each parameter in your model. Carefully interpret each parameter estimate.
+  <<prob1c,results='asis'>>=
+cox.model <- coxph(formula=mel.surv.obj ~ ulc + sex + thick)
+
+# scrap data
+beta <- cox.model$coefficients
+se <- sqrt(diag(cox.model$var))
+z <- qnorm(0.975)
+pvalues <- 2*pnorm(beta/se,lower.tail=F) # two-sided alternative
+
+# place in matrix for output
+prob1c.out <- cbind(beta,se,beta - z*se, beta + z*se,pvalues)
+colnames(prob1c.out) <- c("coefficient", "standard error", "lower 95%", "upper 95%", "p-value")
+rownames(prob1c.out) <- c("Ulceration status", "Sex", "Lesion thickness")
+
+xtable(prob1c.out, digits=4, caption="Coefficient estimates with associated confidence intervals and p-values for Cox Proportional Hazards model")
+
+detach(melanoma)
+@
+As table 2 reports, the coefficients on ulceration status, and legion thickness are both statisticially significant (if you care to reject at the 0.002 level). Even if statistical significance isn't convincing, both of these coefficients have confidence intervals that do not include 0, leading us to be skeptical of the null-hypothesis that they, too, should be 0. 
+
+The consequence of our coefficient estimates is that we can expect a person's hazard to increase by a factor \Sexpr{exp(beta)[1]} in the presence of an ulceration. Likewise, males have hazard functions which are \Sexpr{exp(beta)[2]} fold greater than women, and for every 0.01mm increase in turmor thickness, a person's hazard increases by a factor of \Sexpr{exp(beta)[3]}.
+\end{enumerate}
+\end{document}
