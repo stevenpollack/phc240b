@@ -49,6 +49,7 @@ attach(melanoma)
 library(survival)
 source("ggsurv.R")
 library(xtable)
+library(reshape2)
 @
 
 <<stayInside,echo=FALSE>>=
@@ -68,11 +69,10 @@ library(xtable)
 
 # convert status to a binary situation, indicating
 # whether a patient died or not.
-is.dead <- rep(F,times=length(melanoma$status))
-is.dead[which(melanoma$status %in% c(1,3))] <- T
+died.from.melanoma <- melanoma$status == 1
 
 # make survival object and fit K-M curve
-mel.surv.obj <- Surv(time=melanoma$days,event=is.dead,type="right")
+mel.surv.obj <- Surv(time=melanoma$days,event=died.from.melanoma,type="right")
 km.curve <- survfit(formula=mel.surv.obj~1,conf.int=0.95,conf.type='plain')
 
 # plot curve
@@ -122,11 +122,235 @@ colnames(prob1c.out) <- c("coefficient", "standard error", "lower 95%", "upper 9
 rownames(prob1c.out) <- c("Ulceration status", "Sex", "Lesion thickness")
 
 xtable(prob1c.out, digits=4, caption="Coefficient estimates with associated confidence intervals and p-values for Cox Proportional Hazards model")
-
-detach(melanoma)
 @
-As table 2 reports, the coefficients on ulceration status, and legion thickness are both statisticially significant (if you care to reject at the 0.002 level). Even if statistical significance isn't convincing, both of these coefficients have confidence intervals that do not include 0, leading us to be skeptical of the null-hypothesis that they, too, should be 0. 
+As table 2 reports, the coefficients on ulceration status, and legion thickness are both statisticially significant (if you care to reject at the \Sexpr{round(sort(pvalues)[2],digits=4)} level). Even if statistical significance isn't convincing, both of these coefficients have confidence intervals that do not include 0, leading us to be skeptical of the null-hypothesis that they, too, should be 0. 
 
 The consequence of our coefficient estimates is that we can expect a person's hazard to increase by a factor \Sexpr{exp(beta)[1]} in the presence of an ulceration. Likewise, males have hazard functions which are \Sexpr{exp(beta)[2]} fold greater than women, and for every 0.01mm increase in turmor thickness, a person's hazard increases by a factor of \Sexpr{exp(beta)[3]}.
+\end{enumerate}
+
+\paragraph{\#2.}
+\begin{enumerate}
+  \item[a)] First we consider the following inequality for two sequences, $a_n$, and $b_n$:
+  \[
+    \ord{\sup\ord{a_n} - \sup\ord{b_n}} \leq \sup\ord{a_n - b_n}
+  \]
+  This follows because
+  \[
+  \ord{a_n} \leq \ord{a_n - b_n} + \ord{a_n} \Implies \sup\ord{a_n} \leq \sup\ord{a_n - b_n} + \sup\ord{a_n}
+  \]
+  hence, 
+  \[
+  \sup\ord{a_n} - \sup\ord{b_n} \leq \sup\ord{a_n - b_n}
+  \]
+  But this implies that 
+  \[
+  \sup\ord{b_n} - \sup\ord{a_n} \geq - \sup\ord{a_n-b_n}
+  \]
+  Thus, 
+  \[
+  \ord{\sup\ord{a_n} - \sup\ord{b_n}} \leq \sup\ord{a_n - b_n}
+  \]
+  \newcommand{\W}{\mathbb{W}}
+  \newcommand{\sD}{\sigma^{\diamond}}
+  \newcommand{\V}{\mathbb{V}}
+  Now, observe that $\W_{n}(t)$ may be written as
+  \begin{align*}
+    \W_{n}(t) &= \frac{\sqrt{n}(\log(\Lambda_n(t)) - \log(\Lambda_0(t)))}{\sD_{n}(t) - \sD_{0}(t) + \sD_{0}(t)} \\
+    &= \left(\frac{1}{\sD_{n}(t)} - \frac{1}{\sD_{0}(t)}\right)\left(\frac{1}{\sqrt{n}}\SUM{i}{1}{n} \frac{\Phi_{P_0}(t)(O_i)}{\Lambda_{0}(t)} + \sqrt{n}s_n(t)\right) + \V_{n}(t) + \frac{\sqrt{n}s_n(t)}{\sD_{0}(t)} \\
+    &\equiv X_{n}(t) Y_{n}(t) + \V_{n}(t) + Z_{n}(t)
+  \end{align*}
+  Hence, 
+  \begin{align*}
+  \ord{\sup_{t}\ord{\W_n(t)} - \sup_{t}\ord{\V_n(t)}} &\leq \sup_{t}\ord{\W_n(t) - \V_n(t)} \\
+  &\leq \sup_{t}\ord{X_{n}(t)} \sup_{t}\ord{Y_{n}(t)} + \sup_{t}\ord{Z_n(t)}
+  \end{align*}
+  And since $\sup_{t}\ord{X_n(t)} \xrightarrow{P} 0$ (by assumption), Slutsky's theorem has that $\sup_{t}\ord{X_n(t)} \cdot \sup_{t}\ord{Y_n(t)} \xrightarrow{D} 0$. Moreover, the assumption that $\sup_{t}\ord{\sqrt{n}s_n(t)} \xrightarrow{P} 0$ implies that $\sup_{t}\ord{Z_n(t)}$ converges in probability to 0, as well. Thus, 
+  \[
+    \ord{\sup_{t}\ord{\W_n(t)} - \sup_{t}\ord{\V_n(t)}} \xrightarrow{P} 0
+  \]
+  and since convergence in probability implies convergence in law, we have that
+  \[
+    \lim_{n\to\infty} P(\sup_{t}\ord{\W_n(t)} \leq z) = H(z)
+  \]
+\end{enumerate}
+
+\paragraph{\#3.}
+\begin{enumerate}
+  \item[a)] Considering that
+  \begin{align*}
+    m_{j}(k) &= \SUM{i}{1}{n} \delta_i I(y_i = y_j, z_i = k) \\
+             &= \delta_{j} I(z_j = k) \\
+             &= k\delta_j z_j + (1-k) \delta_j (1-z_j)
+  \end{align*}
+  We see that for $\delta_j = 1$, $m_{j}(1) = z_j$. Moreover,
+  \[
+  m_{j}(0) + m_{j}(1) = \delta_j = 1
+  \]
+  Using these facts, and the identity
+  \[
+    \SUM{i}{1}{n} I(y_i \geq y_j) = \SUM{i}{1}{n} I(y_i \geq y_j, z_i = 1) + I(y_i \geq y_j, z_i = 0) = R_{j}(0) + R_{j}(1) := R_{j}
+  \]
+  we have that (for $g_0(x) = e^{x}$)
+  \begin{align*}
+    && PL(\beta) &= \exp\set{\SUM{i}{1}{n} \delta_i \log\left(\dfrac{g_0(\beta z_i)}{\SUM{j}{1}{n}I(y_j\geq y_i)g_{0}(\beta z_j)}\right)} \\
+    &\Implies& \log(PL) &= \SUM{i}{1}{n}\delta_i \beta z_i - \delta_i\log\left(\SUM{j}{1}{n} I(y_j \geq y_i) e^{\beta z_j}\right) \\
+    &\Implies& \dfrac{\partial}{\partial\beta} \log(PL(\beta))\biggr|_{\beta=0} &= \SUM{i}{1}{n}\delta_i\left(z_i - \dfrac{R_{i}(1)}{R_i}\right) \\
+    && &= \SUM{i}{1}{n}\delta_i\left(m_{j}(1) - \dfrac{R_i - R_{i}(0)}{R_i}\right) \\
+    && &= \SUM{i}{1}{n}\delta_i\left(1 - m_{j}(0) - 1 + \dfrac{R_{i}(0)}{R_i} \right) \\
+    && &= -\SUM{i}{1}{n}\delta_i\left(m_{j}(0) - \dfrac{R_{i}(0)}{R_i} \right) \\
+  \end{align*}
+  Hence, 
+  \[
+    U_{n}(0) = \frac{1}{n}\dfrac{\partial}{\partial\beta} \log(PL(\beta))\biggr|_{\beta=0} = -\frac{1}{n}\SUM{i}{1}{n}\delta_i\left(m_{j}(0) - \dfrac{R_{i}(0)}{R_i} \right)
+  \]
+  \item[b)] From part a), we have that
+  \[
+    U_{1}(\beta) = \frac{\partial}{\partial\beta}\ell(\beta) = \SUM{i}{1}{n}\delta_i \left( z_i - \dfrac{\SUM{j}{1}{n} I(y_j\geq y_i, z_j=1) e^{\beta z_j}}{\SUM{j}{1}{n}I(y_j\geq y_i)e^{\beta z_j}}\right)
+  \]
+  Hence,
+  \begin{align*}
+    U_{1}'(0) &= \SUM{i}{1}{n}\delta_i \left( \dfrac{\SUM{j}{1}{n} I(y_j\geq y_i, z_j=1) z_j e^{\beta z_j}}{\SUM{j}{1}{n}I(y_j\geq y_i)e^{\beta z_j}} \right. \\
+    & \qquad \left. - \dfrac{\left(\SUM{j}{1}{n} I(y_j\geq y_i, z_j=1) e^{\beta z_j}\right)\left(\SUM{j}{1}{n}I(y_j\geq y_i) z_j e^{\beta z_j}\right)}{\left(\SUM{j}{1}{n}I(y_j\geq y_i)e^{\beta z_j}\right)^{2}} \right) \biggr|_{\beta=0} \\
+    &= \SUM{i}{1}{n}\delta_i \left( \dfrac{\left(\SUM{j}{1}{n} I(y_j\geq y_i, z_j=1) z_j \right) \left(\SUM{j}{1}{n}I(y_j\geq y_i)\right)}{\left(\SUM{j}{1}{n}I(y_j\geq y_i)\right)^{2}} \right. \\
+    & \qquad \left. - \frac{\left(\SUM{j}{1}{n} I(y_j\geq y_i, z_j=1) \right)\left(\SUM{j}{1}{n}I(y_j\geq y_i, z_j=1) \right)}{\left(\SUM{j}{1}{n}I(y_j\geq y_i)\right)^{2}} \right)  \\
+    &= \SUM{i}{1}{n}\delta_i \left( \dfrac{R_{i}(1) R_{i} -  R_{i}(1)^2}{R_{i}^{2}} \right) \\
+    &= \SUM{i}{1}{n}\delta_i \left( \dfrac{R_{i}(1)R_{i}(0)}{R_{i}^{2}} \right) \\
+  \end{align*}
+  Where we used the fact that $I(y_j \geq y_i, z_j = 1) z_j = I(y_j\geq y_i, z_j=1)$ to perform the last few manipulations.
+  Thus, 
+  \[
+   \tau_n^2 := \frac{\partial}{\partial\beta}U_{n}(0) = \frac{1}{n}\SUM{i}{1}{n}\delta_i \left( \dfrac{R_{i}(1)R_{i}(0)}{R_{i}^{2}} \right) 
+  \]
+  \item[c)] Generally, when testing for equal survivorship between two covariate groups, $A$, and $B$, the weighted logrank test would take on the form
+  \[
+    t_n = \SUM{j}{1}{d} w_n(v_j) \left[ m_{j}(A) - \frac{R_{j}(A)}{R_{j}} m_j \right]
+  \]
+  where $v_j$ is the $j^{th}$ observed failure time, $m_j(A)$ counts the number of uncensored deaths at time $j$ in covariate group $A$ and $R_j(A)$ is the count of the number of people who have yet to die (or drop out) as of time point $v_j$ within covariate group $A$. The standard logrank test takes $w_n(v_j) = 1$. 
+  
+  For our data, covariate status is binary (e.g. $z_i \in \set{0,1}$), and there are no ties between the $y_i$'s. Hence, we can substitute $\delta_j$ for $w_n(v_j)$ above, and sum over all observations, instead of separating those that were uncensored:
+  \[
+  t_n = \SUM{j}{1}{n} \delta_j \left[ m_{j}(0) - \frac{R_{j}(0)}{R_{j}} m_j \right]
+  \]
+  However, since $m_j = 1$, in our case, we see that $t_n = - U_{1}(0)$. 
+  
+  Thus, it follows from the fact that our score test will be most powerful when the true parameter, $\beta_0$, is near 0 that the standard logrank test will also be most powerful in a small neighborhood around 0.\footnote{full disclosure: I used wikipedia tell me about the score test\ldots}
+  \item[d)] Figure 3 demonstrates that the Cox model-based estimate of survival for patients with ulcerations isn't too far off from the K-M estimator. % I'm not sure what we're supposed to take away from this. The cox model-based curves don't criss cross, which means the can expect the logrank test to be greater than zero (since we won't have cancellation in the summation). However, I'm not sure if I see a visual connection between the figure and the score test...
+  
+  <<prob3d,fig.cap="Cox model estimates of survival curves for patients with (and without) ulcerations, superimposed over K-M estimates.">>=
+  cox.model2 <- coxph(formula=mel.surv.obj~ulc)
+  cox.model2.fitted <- survfit(cox.model2,newdata=data.frame(ulc=c(0,1)))
+  fitted.df <- data.frame(time=c(0,cox.model2.fitted$time),absent=c(1,cox.model2.fitted$surv[,1]),present=c(1,cox.model2.fitted$surv[,2]))
+  
+  fitted.melted <- melt(fitted.df,id.vars=c("time"))
+  
+  plot3d <- plot1b + geom_step(data=fitted.melted, aes(group=NULL,x=time,y=value, color=variable)) + scale_color_discrete(name="",breaks=c("0","1","absent","present"),labels=c("absent\nKM estimate","present\nKM estimate","absent\nCox model","present\nCox model")) + labs(title="Estimated survival curves for presence of ulceration") + theme(legend.position="top")
+  
+  show(plot3d)
+  @
+\end{enumerate}
+
+\paragraph{\#4.}
+\begin{enumerate}
+  \item[a)] Consider the following:
+  \begin{align*}
+    E[\Delta \mid Z = z] &= E[ I(T \leq C) \mid Z = z] \\
+    &= P( T \leq C \mid Z = z) \\
+    &= \int_{t=0}^{\infty} \int_{c=t}^{\infty} f_{T,C|Z}(t,c\mid z) \, dc \, dt \\
+    &= \int_{0}^{\infty} f_{T|Z}(t | z) P(C \geq t \mid Z=z) \, dt \tag{a}\\
+    &= \int_{0}^{\infty} \lambda(t | z) S(t | z ) Q(t | z) \, dt
+\intertext{Thus, if we perform integration by parts with $u = S(t|z) Q(t|z)$ and $dv = \lambda(t|z) dt$, we have}
+    E[\Delta \mid Z= z] &= \Lambda(x | z) S(x | z) Q(x | z) \biggr|_{x=0}^{\infty} + \int_{0}^{\infty} \Lambda(x | z)\left( q(x | z)S(x | z) + f(x | z) Q(x | z) \right) dx \\
+    &= \int_{0}^{\infty} \Lambda(x | z) \left( f_{Y,\Delta|Z}(x,0|z) + f_{Y,\Delta|Z}(x,1|z)\right) \, dx \tag{b} \\
+    &= \int_{0}^{\infty} \Lambda(x | z) \left(\int_{i=0}^{1} f_{Y,\Delta|Z}(x,i|z)  \, d\delta \right) \, dx \tag{c} \\
+    &= \int_{0}^{\infty} \Lambda(x | z) f_{Y|Z}(x|z) \, dx \\
+    &= E[ \Lambda(Y) \mid Z = z] \\
+    &= \psi(z) E[\Lambda_{0}(Y) \mid Z= z] \tag{d}
+  \end{align*}
+  Where (a) follows from the conditional independence of $T$ and $C$, given $Z$, (b) follows from the identity that $S(t) = \exp(-\Lambda(t))$, (c) uses $d\delta$ to denote the counting measure, and (d) comes from the model assumption that $\lambda(t|z) = \lambda_{0}(t) \psi(z)$. Hence, 
+  \[
+    \psi(z) = \frac{E[\Delta \mid Z=z]}{E[\Lambda_{0}(Y) \mid Z= z]}
+  \]
+  \item[b)] Notice that
+  \begin{align*}
+  \psi(z) &= \frac{E(\Delta \mid Z= z)}{E(\Lambda_{0}(Y) \mid Z = z)} \\
+          &= \dfrac{ 
+                \left(\dfrac{P(\Delta = 1, Z=z)}{P(Z=z)}\right)
+                }{
+                \left(\dfrac{E(\Lambda_{0}(Y)I(Z=z))}{P(Z=z)}\right)
+                } \\
+          &= \frac{
+                    P(\Delta=1, Z=z)
+                  }{
+                    E(\Lambda_{0}(Y)I(Z=z))
+                  } := \frac{p_z}{\mu_z}
+  \end{align*}
+  Hence, if we take 
+  \begin{align*}
+  \hat{p}_{z} &= \frac{1}{n}\SUM{i}{1}{n} \delta_i I(z_i=z) \\
+  \hat{\mu}_{z} &= \frac{1}{n} \SUM{i}{1}{n} \Lambda_{0}(y_i) I(z_i=z)
+  \end{align*}
+  the law of large numbers gives us two estimators which are consistent for $p_z$ and $\mu_z$ (respectively) and therfore $ \hat{\psi}(z) := \hat{p}_z / \hat{\mu}_z \xrightarrow{P} p_z / \mu_z$. 
+  
+  Now, my claim is that for fixed $z$, \[\sqrt{n}(\hat{\psi}(z)- \psi(z)) \xrightarrow{\L}N(0, \psi(z)(1-p_z))\] To see this, first observe that the central limit theorem implies that $\sqrt{n}(\hat{p}_z - p_z) \xrightarrow{\L} N(0,p_z(1-p_z))$, and the weak law of large numbers implies that $\hat{\mu}_z \xrightarrow{P} \mu_z$. Thus, an application of Slutsky's theorem has that 
+  \[
+  \frac{\sqrt{n}(\hat{p}_z - p_z)}{\hat{\mu}_z} = \sqrt{n}\left(\hat{\psi}(z) - \frac{p_z}{\hat{\mu}_z}\right) \xrightarrow{\L} N(0,\psi(z)(1-p_z))
+  \]
+  Thus,
+  \[
+  \underbrace{\sqrt{n}\left(\hat{\psi}(z) - \psi(z)\right)}_{X_n} + \underbrace{\sqrt{n}\left( \psi(z) - \frac{p_z}{\hat{\mu}_z}\right)}_{Y_n} \xrightarrow{\L} N(0,\psi(z)(1-p_z))
+  \]
+  But, if we set $X_n \xrightarrow{\L} X$ and observe that $Y_n \xrightarrow{P} 0$, then Slutsky's theorem says that $X_n + Y_n \xrightarrow{\L} X$, which proves the asymptotics claimed earlier.
+  \item[c)] Since we're assuming $\psi(0) = 1$, we may estimate $\Lambda_0$ by subsetting our available data around observations inside the covariate group $z=0$, and using the Nelson-Aalen estimator on this dataset. That is, let
+  \[
+    \hat{\Lambda}_0(t) = \SUM{i}{1}{n} I(z_i = 0) \delta_i \left( \frac{I(0 \leq y_i \leq t)}{\SUM{j}{1}{n} I(y_j \geq y_i)}\right)
+  \]
+  From the properties of the Nelson-Aalen estimator, we may plug this estimator into $\hat{\psi}(z)$ above and obtain another estimator which is, also, consistent for $\psi(z)$. That is, 
+  \[
+    \widehat{\psi}^{*}(z) = \frac{\SUM{i}{1}{n} \delta_i I(z_i=z)}{\SUM{i}{1}{n} \hat{\Lambda}_{0}(y_i) I(z_i=z)}
+  \]
+  is consistent for $\psi(z)$. 
+  \item[d)] 
+  Notice that the size of $r$ may have a dramatic effect on the amount of observations with $z= 0$, and the strength of the estimate in (c) relies on a healthy number of observations with $z=0$ to estimate the baseline cumulative hazard. Outside of this issue, and for both estimators in (b) and (b), in both the small and large-sample situation, we are relying on the law of large numbers to give us reasonable estimates of $\psi(z)$. This property, like the Nelson-Aalen estimator, can't be expected to work well when there are positivity-violations, or near-positivity issues. So, in short: $r$ is important, but perhaps not as important as the number of observations in each category, as they, individually dictate the (point-wise) rate of convergence of $\hat{\psi}(z)$ and $\widehat{\psi}^{*}(z)$. 
+  
+  These estimates cannot be expected to work when $z$ is continuous, as we'll surely have positively violations. In the case of a continuous $z$, some coarsening would have to be applied.
+  \item[e)] %If you have access to software for fitting a Cox model with standard link g 0 (u) = exp(u), describe how to obtain a point estimate and confidence interval of each component of (ψ(0), ψ(1), . . . , ψ(r)) using software output alone?
+  If we model the conditional hazard via
+    \[
+      \lambda(t|z) = \lambda_{0}(t)\exp\left[\SUM{i}{0}{r}\beta_i I(z=i)\right]
+    \]
+  Then provided the software can output $\hat{\beta}_i$ and an associated confidence interval $(\hat{\ell}_i, \hat{u}_i)$, we estimate $\widehat{\psi}(i) = \exp(\hat{\beta}_i)$ with estimated confidence interval $(\exp(\hat{\ell}_i), \exp(\hat{u}_i))$. 
+  \item[f)] %Suppose that the four subpopulations of patients defined by ulceration status and gender have proportional hazard functions. Taking as baseline comparison group the subpopulation of female patients without ulcerated lesions, provide point estimates of the hazard ratio for each of the other three subpopulations using i) the estimator in (c) and ii) standard software for fitting a Cox model.
+  See table 2.
+  <<prob4f,results='asis',cache=FALSE>>=
+  baseline.pop <- subset(x=melanoma,subset={sex==0 & ulc==0})
+  baseline.pop <- transform(baseline.pop,died={status == 1})
+  baseline.pop.fit <- survfit(Surv(time=days,event=died,type="right")~1,data=baseline.pop)
+ nelson.aalen.estimator <- Vectorize(function(t) {
+   out <- sapply(X=1:length(baseline.pop$days),FUN=function(i) {
+     num <- as.numeric((baseline.pop$days[i] <= t) & baseline.pop$died[i] )
+     denom <- sum( (baseline.pop$days >= baseline.pop$days[i]) )
+     num/denom
+   })
+   sum(out)
+ })
+  ### ^^ this could be done in a slick way.
+  ### n.a.est <- cumsum(baseline.pop.fit$n.event/baseline.pop.fit$n.risk)
+  cov.levels <- as.matrix(expand.grid(c(0L,1L),c(0L,1L)))
+  colnames(cov.levels) <- c("ulc","sex")
+  psi.hat.star <- Vectorize(function(z,data=melanoma) {
+    ### z = 0,1,2,...,r
+    cov.group <- cov.levels[z+1,]
+    subpop <-subset(x=data,subset={ulc==cov.group[1] & sex==cov.group[2]})
+    num <- sum(subpop$status != 2)
+    denom <- sum(nelson.aalen.estimator(subpop$days))
+    return(num/denom)
+  })
+  prob4f.out <- cbind(cov.levels,psi.hat.star(0:3))
+  prob4f.out <- cbind(prob4f.out,cov.levels %*% coxph(mel.surv.obj~ulc+sex)$coefficients)
+  colnames(prob4f.out) <- c("ulc","sex","non-parametric estimates", "cox model estimates")
+  prob4f.out[-1,1:2] <- cbind(c("present","absent","present"), c("female","male","male"))
+  prob4f.out[,3:4] <- round(as.numeric(prob4f.out[,3:4]),digits=4)
+  print(xtable(prob4f.out[-1,], caption="Coefficient estimates from estimator in part c, as well as \\texttt{coxph}"),include.rownames=F)
+  @
 \end{enumerate}
 \end{document}
