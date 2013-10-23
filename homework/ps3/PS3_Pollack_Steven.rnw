@@ -172,6 +172,38 @@ The consequence of our coefficient estimates is that we can expect a person's ha
   \[
     \lim_{n\to\infty} P(\sup_{t}\ord{\W_n(t)} \leq z) = H(z)
   \]
+  \item[b)] This is just straight algebraic manipulation. If $\B_n(t)$ is a confidence band for $S_0(t)$, then for any $t \in J_0$
+  \begin{align*}
+    P(B_{n}^{-}(t) \leq S_0(t) \leq B_{n}^{+}(t)) &= P\left( \log\Lambda_n(t) + c_{\alpha} \frac{\sD_n(t)}{\sqrt{n}} \geq \log(-\log(S_0(t))) \geq \log\Lambda_n(t) - c_{\alpha} \frac{\sD_n(t)}{\sqrt{n}}\right) \\
+    &= P\left(-c_{\alpha}\frac{\sD_n(t)}{\sqrt{n}} \leq \log\Lambda_0(t) - \log\Lambda_n(t) \leq c_{\alpha}\frac{\sD_n(t)}{\sqrt{n}} \right) \\
+    &= P\left( \frac{\sqrt{n}\ord{\log\Lambda_n(t) - \log\Lambda_0(t)}}{\sD_n(t)} \leq c_{\alpha} \right) \\
+    &= P\left( \ord{\W_n(t)} \leq c_{\alpha}\right)
+  \end{align*}
+  However, because this holds for all $t \in J_0$, we have that
+  \[
+  P(S_{0} \in \B_n) = P(\sup_{t}\ord{\W_n(t)} \leq c_{\alpha}) \approx H(c_\alpha) = 1-\alpha
+  \]
+  \item[c)] 
+  \renewcommand{\U}{\mathbb{U}}
+  Since we may write $\U_n(t)$ as
+  \[
+    \U_{n}(t) := \frac{\sqrt{n}\left(\frac{1}{n}\SUM{i}{1}{n}\frac{U_i \Phi_{P_0}(t)(O_i)}{\sigma_0(t)} - 0 \right)}{1}
+  \]
+  And from the from the the independence of $U$ and $O$ it follows that
+  \begin{align*}
+    E[U \Phi_{P_0}(t)(O)] &= E[U] E[\Phi_{P_0}(t)(O)] = 0\\
+    \var(U \Phi_{P_0}(t)(O)/\sigma_{0}(t)) &= \frac{E[U^2] \sigma_{0}^{2}}{\sigma_0^2} = 1
+  \end{align*}
+  Hence, the central limit theorem dictates that $\U_n(t) \xrightarrow{\L} N(0,1)$.
+  
+  For the limiting distribution of $\W_n(t)$, set $\sD_n(t) \xrightarrow{P} \sD_0(t)$ and rewrite $\W_n(t)$ via
+  \begin{align*}
+    \W_n(t) &= \frac{\sqrt{n}(\log\Lambda_n(t) - \log\Lambda_0(t))}{\sD_0(t)} \cdot \frac{\sD_0(t)}{\sD_n(t)} \\
+    &= \sqrt{n}\left(\frac{1}{n}\SUM{i}{1}{n}\frac{\Phi_{P_0}(t)(O_i)}{\sD_0(t)\Lambda_0(t)} + \frac{s_n(t)}{\sD_0(t)}\right) \, \frac{\sD_0(t)}{\sD_n(t)} \\
+    &= \left(\sqrt{n}\left(\frac{1}{n}\SUM{i}{1}{n}\frac{\Phi_{P_0}(t)(O_i)}{\sigma_0(t)}\right) + \frac{\sqrt{n}s_n(t)}{\sD_0(t)}\right) \frac{\sD_0(t)}{\sD_n(t)} \\
+    &\equiv (\sqrt{n}X_n + Y_n) Z_n
+  \end{align*}
+  However, from the consistency of $\sD_n(t)$, we have the $Z_n \xrightarrow{P} 1$, from the asymptotic linearity of $\log\Lambda_n(t)$ it follows that $Y_n \xrightarrow{P} 0$, and from the central limit theorem $\sqrt{n}X_n \xrightarrow{\L} N(0,1)$. Hence, two applications of slutsky's theorem show that $\W_n(t) \xrightarrow{\L} N(0,1)$. Thus, $\U_n(t)$ and $\W_n(t)$ have the same asymptotic distribution.
 \end{enumerate}
 
 \paragraph{\#3.}
@@ -321,7 +353,7 @@ The consequence of our coefficient estimates is that we can expect a person's ha
   Then provided the software can output $\hat{\beta}_i$ and an associated confidence interval $(\hat{\ell}_i, \hat{u}_i)$, we estimate $\widehat{\psi}(i) = \exp(\hat{\beta}_i)$ with estimated confidence interval $(\exp(\hat{\ell}_i), \exp(\hat{u}_i))$. 
   \item[f)] %Suppose that the four subpopulations of patients defined by ulceration status and gender have proportional hazard functions. Taking as baseline comparison group the subpopulation of female patients without ulcerated lesions, provide point estimates of the hazard ratio for each of the other three subpopulations using i) the estimator in (c) and ii) standard software for fitting a Cox model.
   See table 2.
-  <<prob4f,results='asis',cache=FALSE>>=
+  <<prob4f,results='asis'>>=
   baseline.pop <- subset(x=melanoma,subset={sex==0 & ulc==0})
   baseline.pop <- transform(baseline.pop,died={status == 1})
   baseline.pop.fit <- survfit(Surv(time=days,event=died,type="right")~1,data=baseline.pop)
