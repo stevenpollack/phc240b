@@ -71,3 +71,5 @@ xtable(prob1c.out, digits=4)
 # just changing a person's ulceration status from absent to present increases their hazard 2.6x; men have 1.59x higher hazard than women; as a tumor becomes .01mm thicker, a persons hazard increases by a factor 1.001.
 
 detach(melanoma)
+
+
