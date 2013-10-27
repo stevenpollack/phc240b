@@ -7,9 +7,6 @@ library(survival)
 # Lambda_n = Nelson-Aalen estimator
 S0 <- function(t) { pexp(q=t,rate=1,lower.tail=F)}
 G <- function(x) { pnorm(q=x,mean=0,sd=1)}
-# J_0 = (1,2)
-grid.res <- 100
-J_0.grid <- seq(from=1,to=2,length.out=grid.res)
 
 m <- 1000 # size of empirical average, affects accuracy of H_n(z)
 n <- c(200,500,1000) # number of U_i's in \U_n, and O_i affects accuracy of lim \U_n
@@ -34,33 +31,59 @@ U <- (replicate(n=m,expr=rnorm(n=n[1],mean=0,sd=1))) # U[,i] = raw data for \U_{
 Y <- O[1,]; Delta <- O[2,]
 n.risk <- sapply(X=Y,FUN=function(y.i){sum(Y >= y.i)})
 Pn <- ecdf(Y)
-S.hat <- function(t){1-Pn(t)}
+S.hat <- Vectorize(FUN=function(t){mean(Y >= t)},vectorize.args=c("t"))
+
+### build grid
+# J_0 = (1,2)
+grid.res <- 100
+J_0.grid.uniform <- seq(from=1,to=2,length.out=grid.res)
+J_0.grid.failure <- Y[(1 <= Y & Y <= 2 & Delta == 1)]
+J_0.grid <- sort(unique(c(J_0.grid.uniform,J_0.grid.failure)))
+
 
 ### estimate influence curve
-IC.Pn <- function(o) {
+### IC.Pn(t;o) = a(t;o) - b(t;o)
+
+b <- cumsum( Delta / (S.hat(Y)*n.risk) )
+IC.Pn <- function(o,t) {
   y <- o[1]; delta <- o[2]
-  function(t) {
-    sapply(X=t,FUN=function(t) {
-      a <- delta*as.numeric( 0 <= y & y <= t)/S.hat(y)
-      m <- which.min(Y <= min(t,y)) - 1
-      b <- sum( Delta[1:m] / (S.hat(Y[1:m])*n.risk[1:m]), na.rm=T )  
-      return(a-b)
-    })
-  }
+  sapply(X=t,FUN=function(t){
+    a <- delta * as.numeric( 0 <= y & y <= t) / S.hat(y)
+    m <- which.min(Y <= min(t,y)) - 1
+    return(a-b[m])
+  })
 }
 
-IC.mat <- apply(X=O,MARGIN=2,FUN=function(o){IC.Pn(o)(J_0.grid)})
+# ---------------------------
+# IC.Pn2 <- function(o) {
+#   y <- o[1]; delta <- o[2]
+#   function(t) {
+#     a <- delta * as.numeric(0 <= y & y <= t) / S.hat(y)
+#     b <- sum(sapply(X=1:n[1],FUN=function(i){
+#       Delta[i] * as.numeric(Y[i] <= min(t,y)) / (n[1] * S.hat(Y[i])^2 )
+#     }),na.rm=T)
+#     a-b
+#   }
+# }
+# -------------------------
+
+system.time(IC.mat <- apply(X=O,MARGIN=2,FUN=function(o){IC.Pn(o,J_0.grid)})) # 3.7 sec.
+
 ### estimate variance of influence curve
-sigma.n <- function(t) {
-  sapply(X=t,FUN=function(t){sum( Delta * as.numeric(Y <= t) / (S.hat(Y)*n.risk) )})
-}
+sigma.n <- Vectorize(FUN=function(t) {
+  m <- which.min(Y <= t) - 1
+  b[m]
+})
+
+system.time(sigma.n(J_0.grid)) # 0.002sec
 
 ### estimate \U_{k,n}(t)
 mathbb.U <- function(k,n) {
-  function(t) {
-    a <- apply(X=O,MARGIN=1,FUN=function(o){IC.Pn(o)(t)/sigma.n(t)})
-    sum(U[,k]*a)/sqrt(n)
-  }
+  IC.Pn.k <- IC.mat[,k]
+  sapply(X=t,FUN=function(t0){
+    a <- apply(X=O,MARGIN=2,FUN=function(o){IC.Pn(o,t0)}/sigma.n(t0)})
+    sum(U[,k]*a)/sqrt(n)  
+  })
 }
 
 ### build vector of \sup|\U_k's|
