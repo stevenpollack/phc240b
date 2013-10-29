@@ -81,15 +81,15 @@ show(plot1a)
 
 # get estimate of S(5 years), assuming right continous
 five.yrs <- 365*5
-indx.of.nearest.time <- max(which(km.curve$time <= five.yrs))
-survival.estimate <- km.curve$surv[indx.of.nearest.time] # 73.2%
+indx.of.nearest.time <- which.min(km.curve$time <= five.yrs) - 1
+survival.estimate <- km.curve$surv[indx.of.nearest.time] # 76.9%
 survival.estimate.ci <- c(km.curve$lower[indx.of.nearest.time],km.curve$upper[indx.of.nearest.time]) # (67.1%, 79.4%)
 
 # if left continuous, use min(which(km.curve$time >= five.yrs))
 
 # estimate P( S >= 5 | S >= 2):
 two.yrs <- 365*2
-indx.of.nearest.time2 <- max(which(km.curve$time <= two.yrs))
+indx.of.nearest.time2 <- which.min(km.curve$time <= two.yrs) - 1
 survival.estimate2 <- km.curve$surv[indx.of.nearest.time2]
 conditional.estimate <- survival.estimate / survival.estimate2 # 81.6%
 @
@@ -204,6 +204,17 @@ The consequence of our coefficient estimates is that we can expect a person's ha
     &\equiv (\sqrt{n}X_n + Y_n) Z_n
   \end{align*}
   However, from the consistency of $\sD_n(t)$, we have the $Z_n \xrightarrow{P} 1$, from the asymptotic linearity of $\log\Lambda_n(t)$ it follows that $Y_n \xrightarrow{P} 0$, and from the central limit theorem $\sqrt{n}X_n \xrightarrow{\L} N(0,1)$. Hence, two applications of slutsky's theorem show that $\W_n(t) \xrightarrow{\L} N(0,1)$. Thus, $\U_n(t)$ and $\W_n(t)$ have the same asymptotic distribution.
+  \item[d)]
+  <<prob2d,results='asis'>>=
+  load(file="simstudy.Rdata")
+  colnames(sim.study.out) <- paste("n=",n,sep="")
+  rownames(sim.study.out) <- c("uniform", "pointwise")
+  print(xtable(sim.study.out,caption="Empirical coverage probability for different types of confidence bands; $n$ is number of sampled $T_i$'s, $m$ is number of sampled $U_{i}$'s.",digits=3))
+  @
+  As table 2 indicates, the coverage for the band created by slapping together 95\% confidence intervals is well under 95\% (in fact, it seems to converge around \Sexpr{round(sim.study.out[2,3]*100)}\%). Alternatively, and unsurprisingly, the uniform confidence band developed in parts a through c has coverage hanging slightly under 95\%.
+  
+  If you change the number of $U_{i}$'s to 5000, and consider $n=2000$, one finds empirical coverage probabilities around 94\% and 73\% for the uniform and pointwise bands (respectively). This gives us reason to believe the uniform band construction works as advertised.
+  \item[e)] Say you have independent samples $O^{1}_1, \ldots, O^{1}_n$ and $O^{2}_{1}, \ldots, O^{2}_{m}$, both right-censored data, and you suppose they both have identical survival functions. Then, you could pool the samples and under the null hypothesis, the monte carlo approach should yield a band that has approximately 95\% coverage. If your simulation yields coverage that is far from 95\%, you have reason to believe your samples did not come from the same distribution.
 \end{enumerate}
 
 \paragraph{\#3.}
