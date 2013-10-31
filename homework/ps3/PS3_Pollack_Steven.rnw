@@ -1,6 +1,6 @@
-\documentclass[12pt,titlepage]{article}
+\documentclass[10pt,titlepage]{article}
 
-\usepackage{mcgill,fancyhdr,palatino}
+\usepackage{fancyhdr,palatino,mcgill}
 
 %%%%% knitr code to make sure things stay inside listings box:
 \usepackage{listings}
@@ -15,6 +15,7 @@
 \author{Steven Pollack \\ 24112977}
 \date{}
 
+\renewcommand{\E}{\mathbb{E}}
 \renewcommand{\Q}{\mathcal{Q}}
 \renewcommand{\H}{\mathcal{H}}
 \renewcommand{\N}{\mathcal{N}}
@@ -191,8 +192,8 @@ The consequence of our coefficient estimates is that we can expect a person's ha
   \]
   And from the from the the independence of $U$ and $O$ it follows that
   \begin{align*}
-    E[U \Phi_{P_0}(t)(O)] &= E[U] E[\Phi_{P_0}(t)(O)] = 0\\
-    \var(U \Phi_{P_0}(t)(O)/\sigma_{0}(t)) &= \frac{E[U^2] \sigma_{0}^{2}}{\sigma_0^2} = 1
+    \E[U \Phi_{P_0}(t)(O)] &= \E[U] \E[\Phi_{P_0}(t)(O)] = 0\\
+    \var(U \Phi_{P_0}(t)(O)/\sigma_{0}(t)) &= \frac{\E[U^2] \sigma_{0}^{2}}{\sigma_0^2} = 1
   \end{align*}
   Hence, the central limit theorem dictates that $\U_n(t) \xrightarrow{\L} N(0,1)$.
   
@@ -205,15 +206,14 @@ The consequence of our coefficient estimates is that we can expect a person's ha
   \end{align*}
   However, from the consistency of $\sD_n(t)$, we have the $Z_n \xrightarrow{P} 1$, from the asymptotic linearity of $\log\Lambda_n(t)$ it follows that $Y_n \xrightarrow{P} 0$, and from the central limit theorem $\sqrt{n}X_n \xrightarrow{\L} N(0,1)$. Hence, two applications of slutsky's theorem show that $\W_n(t) \xrightarrow{\L} N(0,1)$. Thus, $\U_n(t)$ and $\W_n(t)$ have the same asymptotic distribution.
   \item[d)]
-  <<prob2d,results='asis'>>=
-  load(file="simstudy.Rdata")
-  colnames(sim.study.out) <- paste("n=",n,sep="")
-  rownames(sim.study.out) <- c("uniform", "pointwise")
-  print(xtable(sim.study.out,caption="Empirical coverage probability for different types of confidence bands; $n$ is number of sampled $T_i$'s, $m$ is number of sampled $U_{i}$'s.",digits=3))
+  <<prob2d,results='asis',cache=T>>=
+  load(file="2013-10-30-15:27:17-simstudy.Rdata")
+  colnames(out) <- paste("n=",n,sep="")
+  print(xtable(out,caption=paste("Empirical coverage probability for different types of confidence bands; $n$ is number of sampled $T_i$'s, $m = ", m, "$ is number of sampled $U_{i}$'s.", sep=""),digits=3))
   @
-  As table 2 indicates, the coverage for the band created by slapping together 95\% confidence intervals is well under 95\% (in fact, it seems to converge around \Sexpr{round(sim.study.out[2,3]*100)}\%). Alternatively, and unsurprisingly, the uniform confidence band developed in parts a through c has coverage hanging slightly under 95\%.
+  As table 2 indicates, the coverage for the band created by slapping together 95\% confidence intervals is well under 95\% (in fact, it seems to converge around \Sexpr{round(out[2,5]*100)}\%). Alternatively, and unsurprisingly, the uniform confidence band developed in parts a through c has coverage hanging slightly under 95\%.
   
-  If you change the number of $U_{i}$'s to 5000, and consider $n=2000$, one finds empirical coverage probabilities around 94\% and 73\% for the uniform and pointwise bands (respectively). This gives us reason to believe the uniform band construction works as advertised.
+  If you change the number of $U_{i}$'s to 5000, and consider $n=5000$, one finds empirical coverage probabilities around \Sexpr{round(out[1,5]*100)}\% and \Sexpr{round(out[2,5]*100)}\% for the uniform and pointwise bands (respectively). This gives us reason to believe the uniform band construction works as advertised.
   \item[e)] Say you have independent samples $O^{1}_1, \ldots, O^{1}_n$ and $O^{2}_{1}, \ldots, O^{2}_{m}$, both right-censored data, and you suppose they both have identical survival functions. Then, you could pool the samples and under the null hypothesis, the monte carlo approach should yield a band that has approximately 95\% coverage. If your simulation yields coverage that is far from 95\%, you have reason to believe your samples did not come from the same distribution.
 \end{enumerate}
 
@@ -296,35 +296,37 @@ The consequence of our coefficient estimates is that we can expect a person's ha
 \begin{enumerate}
   \item[a)] Consider the following:
   \begin{align*}
-    E[\Delta \mid Z = z] &= E[ I(T \leq C) \mid Z = z] \\
+    \E[\Delta \mid Z = z] &= \E[ I(T \leq C) \mid Z = z] \\
     &= P( T \leq C \mid Z = z) \\
     &= \int_{t=0}^{\infty} \int_{c=t}^{\infty} f_{T,C|Z}(t,c\mid z) \, dc \, dt \\
     &= \int_{0}^{\infty} f_{T|Z}(t | z) P(C \geq t \mid Z=z) \, dt \tag{a}\\
     &= \int_{0}^{\infty} \lambda(t | z) S(t | z ) Q(t | z) \, dt
 \intertext{Thus, if we perform integration by parts with $u = S(t|z) Q(t|z)$ and $dv = \lambda(t|z) dt$, we have}
-    E[\Delta \mid Z= z] &= \Lambda(x | z) S(x | z) Q(x | z) \biggr|_{x=0}^{\infty} + \int_{0}^{\infty} \Lambda(x | z)\left( q(x | z)S(x | z) + f(x | z) Q(x | z) \right) dx \\
+    \E[\Delta \mid Z= z] &= \Lambda(x | z) S(x | z) Q(x | z) \biggr|_{x=0}^{\infty} + \int_{0}^{\infty} \Lambda(x | z)\left( q(x | z)S(x | z) + f(x | z) Q(x | z) \right) dx \\
     &= \int_{0}^{\infty} \Lambda(x | z) \left( f_{Y,\Delta|Z}(x,0|z) + f_{Y,\Delta|Z}(x,1|z)\right) \, dx \tag{b} \\
     &= \int_{0}^{\infty} \Lambda(x | z) \left(\int_{i=0}^{1} f_{Y,\Delta|Z}(x,i|z)  \, d\delta \right) \, dx \tag{c} \\
     &= \int_{0}^{\infty} \Lambda(x | z) f_{Y|Z}(x|z) \, dx \\
-    &= E[ \Lambda(Y) \mid Z = z] \\
-    &= \psi(z) E[\Lambda_{0}(Y) \mid Z= z] \tag{d}
+    &= \E[ \Lambda(Y) \mid Z = z] \\
+    &= \psi(z) \E[\Lambda_{0}(Y) \mid Z= z] \tag{d}
   \end{align*}
   Where (a) follows from the conditional independence of $T$ and $C$, given $Z$, (b) follows from the identity that $S(t) = \exp(-\Lambda(t))$, (c) uses $d\delta$ to denote the counting measure, and (d) comes from the model assumption that $\lambda(t|z) = \lambda_{0}(t) \psi(z)$. Hence, 
   \[
-    \psi(z) = \frac{E[\Delta \mid Z=z]}{E[\Lambda_{0}(Y) \mid Z= z]}
+    \psi(z) = \frac{\E[\Delta \mid Z=z]}{\E[\Lambda_{0}(Y) \mid Z= z]}
   \]
-  \item[b)] Notice that
+  \item[b)] 
+  %%% do delta method
+  Notice that
   \begin{align*}
-  \psi(z) &= \frac{E(\Delta \mid Z= z)}{E(\Lambda_{0}(Y) \mid Z = z)} \\
+  \psi(z) &= \frac{\E[\Delta \mid Z= z]}{\E[\Lambda_{0}(Y) \mid Z = z]} \\
           &= \dfrac{ 
                 \left(\dfrac{P(\Delta = 1, Z=z)}{P(Z=z)}\right)
                 }{
-                \left(\dfrac{E(\Lambda_{0}(Y)I(Z=z))}{P(Z=z)}\right)
+                \left(\dfrac{\E[\Lambda_{0}(Y)I(Z=z)]}{P(Z=z)}\right)
                 } \\
           &= \frac{
                     P(\Delta=1, Z=z)
                   }{
-                    E(\Lambda_{0}(Y)I(Z=z))
+                    \E[\Lambda_{0}(Y)I(Z=z)]
                   } := \frac{p_z}{\mu_z}
   \end{align*}
   Hence, if we take 
@@ -334,15 +336,38 @@ The consequence of our coefficient estimates is that we can expect a person's ha
   \end{align*}
   the law of large numbers gives us two estimators which are consistent for $p_z$ and $\mu_z$ (respectively) and therfore $ \hat{\psi}(z) := \hat{p}_z / \hat{\mu}_z \xrightarrow{P} p_z / \mu_z$. 
   
-  Now, my claim is that for fixed $z$, \[\sqrt{n}(\hat{\psi}(z)- \psi(z)) \xrightarrow{\L}N(0, \psi(z)(1-p_z))\] To see this, first observe that the central limit theorem implies that $\sqrt{n}(\hat{p}_z - p_z) \xrightarrow{\L} N(0,p_z(1-p_z))$, and the weak law of large numbers implies that $\hat{\mu}_z \xrightarrow{P} \mu_z$. Thus, an application of Slutsky's theorem has that 
-  \[
-  \frac{\sqrt{n}(\hat{p}_z - p_z)}{\hat{\mu}_z} = \sqrt{n}\left(\hat{\psi}(z) - \frac{p_z}{\hat{\mu}_z}\right) \xrightarrow{\L} N(0,\psi(z)(1-p_z))
-  \]
-  Thus,
-  \[
-  \underbrace{\sqrt{n}\left(\hat{\psi}(z) - \psi(z)\right)}_{X_n} + \underbrace{\sqrt{n}\left( \psi(z) - \frac{p_z}{\hat{\mu}_z}\right)}_{Y_n} \xrightarrow{\L} N(0,\psi(z)(1-p_z))
-  \]
-  But, if we set $X_n \xrightarrow{\L} X$ and observe that $Y_n \xrightarrow{P} 0$, then Slutsky's theorem says that $X_n + Y_n \xrightarrow{\L} X$, which proves the asymptotics claimed earlier.
+  The influence curve for $\hat{p}_{z'}$ is $IC_1(o) = \delta I(z=z') - p_{z'}$, and the influence curve for $\hat{\mu}_{z'}$ is $IC_{2}(o) = \Lambda_0(y)I(z=z') - \mu_{z'}$. Thus, the covariance matrix for the estimators is 
+  \begin{align*}
+  \Sigma &\equiv \begin{pmatrix}
+  \E[IC_{1}^2(O)] & \E[IC_{1}(O)IC_{2}(O)] \\
+  \E[IC_{1}(O)IC_{2}(O)] & \E[IC_{2}^{2}(O)]
+  \end{pmatrix} \\
+  &= \begin{pmatrix}
+  p_{z'}(1-p_{z'}) & p_{z'}(\E(\Lambda_{0}(Y) | \Delta=1, Z=z')-\mu_{z'}) \\
+  p_{z'}(\E(\Lambda_{0}(Y) | \Delta=1, Z=z')-\mu_{z'}) & P(Z=z')\E(\Lambda_0^2(Y)|Z=z') - \mu_{z'}^2
+  \end{pmatrix} \\
+  &\equiv \begin{pmatrix}
+  p_{z'}(1-p_{z'}) & p_{z'}(a-\mu_{z'}) \\
+  p_{z'}(a-\mu_{z'}) & b - \mu_{z'}^2
+  \end{pmatrix}
+  \end{align*}
+  Hence, if $g(x,y) = x/y$, and $\nabla g = (y^{-1}, -xy^{-2})$, then the multivariate delta method tells us that $\widehat{\psi}(z') = g(\hat{p}_{z'}, \hat{\mu}_{z'})$ is asymptotically linear with asymptotic variance equal to 
+  \begin{align*}
+  \nabla g(p_{z'},\mu_{z'})^{T} \Sigma \nabla g(p_{z'},\mu_{z'}) &= 
+  \begin{pmatrix} \dfrac{1}{\mu_{z'}} & -\dfrac{\psi(z')}{\mu_{z'}} \end{pmatrix}
+  \begin{pmatrix}
+  p_{z'}(1-p_{z'}) & p_{z'}(a-\mu_{z'}) \\
+  p_{z'}(a-\mu_{z'}) & b - \mu_{z'}^2
+  \end{pmatrix}
+  \begin{pmatrix} \dfrac{1}{\mu_{z'}} \\ -\dfrac{\psi(z')}{\mu_{z'}} \end{pmatrix} \\
+  %&= \psi(z')\left(\frac{1}{\mu_{z'}} - \psi(z')\right) - 2\psi^2(z')\left(\frac{a}{\mu_{z'}} - \psi(z')\right)  - \psi^2(z')\left( \frac{\E[\Lambda^2_0(Y) | Z=z']}{\E[\Lambda_0(Y)|Z=z']} - \frac{1}{\mu_{z'}}\right) \\
+  &= \frac{\psi(z')}{\mu_{z'}} + \frac{b \psi^{2}(z')}{\mu_{z'}^2} - \frac{2a\psi^2(z')}{\mu_{z'}} \\
+  &= \frac{\psi(z')}{\mu_{z'}}\left( 1 + \psi(z')(c-2a)\right) \\
+  &\equiv \Psi(z')
+  \end{align*}
+  where $c = \E[\Lambda_{0}^{2}(Y) | Z=z'] / \E[\Lambda_{0}(Y) | Z=z']$.
+  
+  Thus, $\sqrt{n}(\widehat{\psi}(z')-\psi(z')) \xrightarrow{D} N(0, \Psi(z'))$, by the central limit theorem.
   \item[c)] Since we're assuming $\psi(0) = 1$, we may estimate $\Lambda_0$ by subsetting our available data around observations inside the covariate group $z=0$, and using the Nelson-Aalen estimator on this dataset. That is, let
   \[
     \hat{\Lambda}_0(t) = \SUM{i}{1}{n} I(z_i = 0) \delta_i \left( \frac{I(0 \leq y_i \leq t)}{\SUM{j}{1}{n} I(y_j \geq y_i)}\right)
@@ -368,28 +393,28 @@ The consequence of our coefficient estimates is that we can expect a person's ha
   baseline.pop <- subset(x=melanoma,subset={sex==0 & ulc==0})
   baseline.pop <- transform(baseline.pop,died={status == 1})
   baseline.pop.fit <- survfit(Surv(time=days,event=died,type="right")~1,data=baseline.pop)
- nelson.aalen.estimator <- Vectorize(function(t) {
-   out <- sapply(X=1:length(baseline.pop$days),FUN=function(i) {
-     num <- as.numeric((baseline.pop$days[i] <= t) & baseline.pop$died[i] )
-     denom <- sum( (baseline.pop$days >= baseline.pop$days[i]) )
-     num/denom
-   })
-   sum(out)
- })
-  ### ^^ this could be done in a slick way.
-  ### n.a.est <- cumsum(baseline.pop.fit$n.event/baseline.pop.fit$n.risk)
+  n.a.est <- cumsum(baseline.pop.fit$n.event/baseline.pop.fit$n.risk)
+  nelson.aalen.est <- stepfun(x=baseline.pop.fit$time,y=c(0,n.a.est))
+
   cov.levels <- as.matrix(expand.grid(c(0L,1L),c(0L,1L)))
   colnames(cov.levels) <- c("ulc","sex")
   psi.hat.star <- Vectorize(function(z,data=melanoma) {
     ### z = 0,1,2,...,r
     cov.group <- cov.levels[z+1,]
     subpop <-subset(x=data,subset={ulc==cov.group[1] & sex==cov.group[2]})
-    num <- sum(subpop$status != 2)
-    denom <- sum(nelson.aalen.estimator(subpop$days))
+    num <- sum(subpop$status == 1)
+    denom <- sum(nelson.aalen.est(subpop$days))
     return(num/denom)
   })
-  prob4f.out <- cbind(cov.levels,psi.hat.star(0:3))
-  prob4f.out <- cbind(prob4f.out,cov.levels %*% coxph(mel.surv.obj~ulc+sex)$coefficients)
+  ### transform data to make 3 dummy variables
+  dummy.data <- within(data=melanoma,expr={
+    Z1 <- (ulc==1 & sex==0)
+    Z2 <- (ulc==0 & sex==1)
+    Z3 <- (ulc==1 & sex==1)
+    uncensored <- (status == 1)
+    })
+  dummy.cox <- coxph(formula=Surv(days,event=uncensored)~Z1+Z2+Z3,data=dummy.data)
+  prob4f.out <- cbind(cov.levels,psi.hat.star(0:3),c(1,exp(dummy.cox$coefficients)))
   colnames(prob4f.out) <- c("ulc","sex","non-parametric estimates", "cox model estimates")
   prob4f.out[-1,1:2] <- cbind(c("present","absent","present"), c("female","male","male"))
   prob4f.out[,3:4] <- round(as.numeric(prob4f.out[,3:4]),digits=4)

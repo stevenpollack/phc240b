@@ -156,3 +156,5 @@ cat(paste("Band type-II had coverage = ", coverage.probs[2], "\n\n", sep=""))
 filename <- format(Sys.time(), "%F-%H:%M:%S-simstudy.Rdata")
 save.image(file=filename)
 ############################
+
+
